@@ -1,0 +1,51 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --font-sans: 'Noto Sans KR', 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'DM Mono', monospace;
+  --radius-sm: 5px; --radius-md: 8px; --radius-lg: 12px; --radius-xl: 16px;
+  --transition: 0.15s ease;
+}
+
+[data-theme="dark"], :root {
+  --bg0: #0a0a0b; --bg1: #111113; --bg2: #18181c; --bg3: #222228; --bg4: #2a2a32;
+  --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.12);
+  --text0: #f0f0f4; --text1: #b8b8c8; --text2: #6e6e88;
+  --accent: #4ade80; --accent-dim: rgba(74,222,128,0.12); --accent-hover: #22c55e;
+  --red: #f87171; --amber: #fbbf24; --blue: #60a5fa; --purple: #a78bfa;
+  --scrollbar: rgba(255,255,255,0.08);
+}
+[data-theme="light"] {
+  --bg0: #f5f5f7; --bg1: #ffffff; --bg2: #f1f3f5; --bg3: #e9ecef; --bg4: #dee2e6;
+  --border: rgba(0,0,0,0.07); --border2: rgba(0,0,0,0.12);
+  --text0: #0d0d12; --text1: #4a4a5a; --text2: #9090a8;
+  --accent: #16a34a; --accent-dim: rgba(22,163,74,0.08); --accent-hover: #15803d;
+  --red: #dc2626; --amber: #d97706; --blue: #2563eb; --purple: #7c3aed;
+  --scrollbar: rgba(0,0,0,0.08);
+}
+[data-theme="green"] {
+  --bg0: #06120a; --bg1: #0b1f12; --bg2: #0f2a17; --bg3: #14361e; --bg4: #1a4226;
+  --border: rgba(74,222,128,0.08); --border2: rgba(74,222,128,0.15);
+  --text0: #e8f5ec; --text1: #a8d5b2; --text2: #5a9068;
+  --accent: #4ade80; --accent-dim: rgba(74,222,128,0.12); --accent-hover: #86efac;
+  --scrollbar: rgba(74,222,128,0.08);
+}
+
+html, body, #root { height:100%; overflow:hidden; font-family:var(--font-sans); background:var(--bg0); color:var(--text0); font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased; }
+
+/* 한글 폰트 */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Nanum+Gothic:wght@400;700&family=Nanum+Myeongjo:wght@400;700&family=Nanum+Pen+Script&family=Black+Han+Sans&family=Jua&family=Gugi&family=Hahmlet:wght@400;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
+
+::-webkit-scrollbar { width:4px; height:4px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--scrollbar); border-radius:4px; }
+::-webkit-scrollbar-thumb:hover { background:var(--border2); }
+::selection { background:var(--accent-dim); }
+:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+button { font-family:var(--font-sans); cursor:pointer; border:none; background:none; }
+input, select, textarea { font-family:var(--font-sans); }
+* { transition: background-color var(--transition), border-color var(--transition), color var(--transition); }
+.sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+
+/* 페이지 썸네일 hover */
+.page-thumb-wrap:hover .page-actions { opacity:1 !important; }
