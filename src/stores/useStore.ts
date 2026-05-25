@@ -103,6 +103,9 @@ interface State {
   // 자동 저장
   autoSaveInterval: number
   setAutoSaveInterval: (sec: number) => void
+  setPageBackground: (color: string) => void
+  favoriteColors: string[]
+  addFavoriteColor: (color: string) => void
 }
 
 export const useStore = create<State>((set, get) => ({
@@ -418,4 +421,19 @@ export const useStore = create<State>((set, get) => ({
 
   autoSaveInterval: 30,
   setAutoSaveInterval: (sec) => set({ autoSaveInterval: sec }),
-}))
+  setPageBackground: (color) => {
+    const { pages, currentPageIndex } = get()
+    const newPages = pages.map((p, i) => i === currentPageIndex ? { ...p, background: color } : p)
+    set({ pages: newPages })
+    get().pushHistory()
+  },
+  favoriteColors: [],
+  addFavoriteColor: (color) => {
+    set(s => {
+      const existing = s.favoriteColors.filter(c => c !== color)
+      const updated = [color, ...existing].slice(0, 16)
+      localStorage.setItem('naps-fav-colors', JSON.stringify(updated))
+      return { favoriteColors: updated }
+    })
+  },
+})))

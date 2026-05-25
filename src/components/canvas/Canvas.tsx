@@ -15,13 +15,19 @@ export const Canvas: React.FC = () => {
     updateElements, pushHistory, activeTool, setTool,
     canvasWidth, canvasHeight, zoom, setZoom,
     showGrid, snapEnabled, watermark, watermarkEnabled, pages, currentPageIndex,
+    setPageBackground,
   } = useStore()
 
   const [snapGuides, setSnapGuides] = useState<SnapGuide[]>([])
   const dragRef = useRef<{ el: CanvasElement, startX: number, startY: number, elX: number, elY: number } | null>(null)
-  const resizeRef = useRef<{ el: CanvasElement, handle: string, startX: number, startY: number, origW: number, origH: number, origX: number, origY: number, ratio: number } | null>(null)
+  const resizeRef = useRef<{ el: CanvasElement, handle: string, startX: number, startY: number, origW: number, origH: number, origX: number, origY: number } | null>(null)
   const selBoxRef = useRef<{ startX: number; startY: number } | null>(null)
-  const [selBox, setSelBox] = useState<{ x:number;y:number;w:number;h:number }|null>(null)
+  const [selBox, setSelBox] = useState<{ x: number; y: number; w: number; h: number } | null>(null)
+  // 도형/선 드래그 그리기
+  const drawRef = useRef<{ startX: number; startY: number; elId: string } | null>(null)
+  // 손 도구 패닝
+  const panRef = useRef<{ startX: number; startY: number; scrollLeft: number; scrollTop: number } | null>(null)
+  const [isPanning, setIsPanning] = useState(false)
 
   // Auto-fit zoom
   useEffect(() => {
@@ -40,62 +46,125 @@ export const Canvas: React.FC = () => {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
-      const { deleteSelected, duplicateSelected, undo, redo, ungroupSelected } = useStore.getState()
+      const { deleteSelected, duplicateSelected, undo, redo, ungroupSelected, groupSelected } = useStore.getState()
       if (e.key === 'Delete' || e.key === 'Backspace') deleteSelected()
       if ((e.metaKey || e.ctrlKey) && e.key === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo() }
       if ((e.metaKey || e.ctrlKey) && e.key === 'd') { e.preventDefault(); duplicateSelected() }
-      if ((e.metaKey || e.ctrlKey) && e.key === 'g') { e.preventDefault(); useStore.getState().groupSelected() }
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key === 'g') { e.preventDefault(); groupSelected() }
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'G') { e.preventDefault(); ungroupSelected() }
       if (e.key === 'Escape') { selectElement(null); setTool('select') }
       if (e.key === 'v') setTool('select')
       if (e.key === 't') setTool('text')
+      if (e.key === 'h') setTool('hand')
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  // 단순 휠로 확대/축소 (Ctrl 필요 없음)
+  // 휠로 확대/축소
   const onWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault()
     const delta = e.deltaY < 0 ? 1.1 : 0.9
     setZoom(Math.min(Math.max(zoom * delta, 0.1), 4))
   }, [zoom, setZoom])
 
+  // 손 도구 패닝
+  const onWrapMouseDown = useCallback((e: React.MouseEvent) => {
+    if (activeTool !== 'hand') return
+    e.preventDefault()
+    setIsPanning(true)
+    panRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      scrollLeft: wrapRef.current?.scrollLeft || 0,
+      scrollTop: wrapRef.current?.scrollTop || 0,
+    }
+    const onMove = (ev: MouseEvent) => {
+      if (!panRef.current || !wrapRef.current) return
+      wrapRef.current.scrollLeft = panRef.current.scrollLeft - (ev.clientX - panRef.current.startX)
+      wrapRef.current.scrollTop = panRef.current.scrollTop - (ev.clientY - panRef.current.startY)
+    }
+    const onUp = () => {
+      setIsPanning(false)
+      panRef.current = null
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }, [activeTool])
+
   const onCanvasMouseDown = useCallback((e: React.MouseEvent) => {
-    if (!canvasRef.current) return
+    if (!canvasRef.current || activeTool === 'hand') return
     const pos = getCanvasPos(e.clientX, e.clientY, canvasRef.current, zoom)
 
+    // 텍스트 도구: 클릭 즉시 편집 가능한 텍스트 생성
     if (activeTool === 'text') {
       const el = makeTextElement(pos.x, pos.y, elements.length)
-      addElement(el); setTool('select'); return
+      addElement(el)
+      setTool('select')
+      return
     }
-    if (activeTool === 'shape') {
-      const el = makeShapeElement(pos.x, pos.y, 120, 80, elements.length)
-      addElement(el); setTool('select'); return
+
+    // 도형 드래그로 그리기
+    if (activeTool === 'shape' || activeTool === 'line') {
+      const el = activeTool === 'shape'
+        ? makeShapeElement(pos.x, pos.y, 1, 1, elements.length, useStore.getState().activeShapeType)
+        : makeLineElement(pos.x, pos.y, elements.length)
+      addElement(el)
+      drawRef.current = { startX: pos.x, startY: pos.y, elId: el.id }
+
+      const onMove = (ev: MouseEvent) => {
+        if (!drawRef.current || !canvasRef.current) return
+        const p = getCanvasPos(ev.clientX, ev.clientY, canvasRef.current, zoom)
+        const w = Math.abs(p.x - drawRef.current.startX)
+        const h = Math.abs(p.y - drawRef.current.startY)
+        const x = Math.min(p.x, drawRef.current.startX)
+        const y = Math.min(p.y, drawRef.current.startY)
+        updateElement(drawRef.current.elId, {
+          x, y,
+          width: Math.max(w, 4),
+          height: activeTool === 'line' ? Math.max(h, 4) : Math.max(h, 4),
+        })
+      }
+      const onUp = () => {
+        pushHistory()
+        drawRef.current = null
+        setTool('select')
+        window.removeEventListener('mousemove', onMove)
+        window.removeEventListener('mouseup', onUp)
+      }
+      window.addEventListener('mousemove', onMove)
+      window.addEventListener('mouseup', onUp)
+      return
     }
-    if (activeTool === 'line') {
-      const el = makeLineElement(pos.x, pos.y, elements.length)
-      addElement(el); setTool('select'); return
-    }
+
+    // 선택 도구: 드래그 다중 선택
     if (activeTool === 'select' && e.target === canvasRef.current) {
       selectElement(null)
       selBoxRef.current = { startX: pos.x, startY: pos.y }
       const onMove = (ev: MouseEvent) => {
         if (!selBoxRef.current || !canvasRef.current) return
         const p = getCanvasPos(ev.clientX, ev.clientY, canvasRef.current, zoom)
-        const x = Math.min(p.x, selBoxRef.current.startX)
-        const y = Math.min(p.y, selBoxRef.current.startY)
-        const w = Math.abs(p.x - selBoxRef.current.startX)
-        const h = Math.abs(p.y - selBoxRef.current.startY)
-        setSelBox({ x, y, w, h })
+        setSelBox({
+          x: Math.min(p.x, selBoxRef.current.startX),
+          y: Math.min(p.y, selBoxRef.current.startY),
+          w: Math.abs(p.x - selBoxRef.current.startX),
+          h: Math.abs(p.y - selBoxRef.current.startY),
+        })
       }
       const onUp = () => {
-        if (selBoxRef.current && selBox) {
-          const { x, y, w, h } = selBox
-          const inBox = elements.filter(el => el.x < x+w && el.x+el.width > x && el.y < y+h && el.y+el.height > y)
-          if (inBox.length > 0) {
+        const box = selBoxRef.current
+        if (box) {
+          const cur = { x: 0, y: 0, w: 0, h: 0 }
+          setSelBox(prev => { if (prev) { cur.x=prev.x; cur.y=prev.y; cur.w=prev.w; cur.h=prev.h } return null })
+          setTimeout(() => {
+            const inBox = elements.filter(el =>
+              el.x < cur.x+cur.w && el.x+el.width > cur.x &&
+              el.y < cur.y+cur.h && el.y+el.height > cur.y
+            )
             inBox.forEach((el, i) => selectElement(el.id, i > 0))
-          }
+          }, 0)
         }
         setSelBox(null)
         selBoxRef.current = null
@@ -105,22 +174,40 @@ export const Canvas: React.FC = () => {
       window.addEventListener('mousemove', onMove)
       window.addEventListener('mouseup', onUp)
     }
-  }, [activeTool, elements, addElement, selectElement, setTool, zoom, selBox])
+  }, [activeTool, elements, addElement, selectElement, setTool, zoom, updateElement, pushHistory])
 
   const onDragStart = useCallback((e: React.MouseEvent, el: CanvasElement) => {
-    if (el.locked) return
+    if (el.locked || activeTool !== 'select') return
     e.stopPropagation(); e.preventDefault()
     if (!selectedIds.includes(el.id)) selectElement(el.id, e.shiftKey)
-    dragRef.current = { el, startX: e.clientX, startY: e.clientY, elX: el.x, elY: el.y }
+
+    // 다중 선택 시 모든 선택된 요소의 초기 위치 저장
+    const state = useStore.getState()
+    const selEls = state.elements.filter(e => state.selectedIds.includes(e.id))
+    const startPositions = selEls.map(e => ({ id: e.id, x: e.x, y: e.y }))
+    const startX = e.clientX, startY = e.clientY
+
+    dragRef.current = { el, startX, startY, elX: el.x, elY: el.y }
+
     const onMove = (ev: MouseEvent) => {
-      if (!dragRef.current || !canvasRef.current) return
-      const dx = (ev.clientX - dragRef.current.startX) / zoom
-      const dy = (ev.clientY - dragRef.current.startY) / zoom
-      const nx = dragRef.current.elX + dx, ny = dragRef.current.elY + dy
-      const others = elements.filter(o => o.id !== el.id)
-      const snapped = snapElement(nx, ny, el.width, el.height, canvasWidth, canvasHeight, others, snapEnabled)
-      setSnapGuides(snapped.guides)
-      updateElement(el.id, { x: snapped.x, y: snapped.y })
+      const dx = (ev.clientX - startX) / zoom
+      const dy = (ev.clientY - startY) / zoom
+      const cur = useStore.getState()
+
+      if (cur.selectedIds.length > 1) {
+        // 다중 선택: 모든 선택된 요소 함께 이동
+        startPositions.forEach(sp => {
+          cur.updateElement(sp.id, { x: Math.round(sp.x + dx), y: Math.round(sp.y + dy) })
+        })
+      } else {
+        // 단일 선택: 스냅 적용
+        const nx = dragRef.current!.elX + dx
+        const ny = dragRef.current!.elY + dy
+        const others = cur.elements.filter(o => o.id !== el.id)
+        const snapped = snapElement(nx, ny, el.width, el.height, cur.canvasWidth, cur.canvasHeight, others, cur.snapEnabled)
+        setSnapGuides(snapped.guides)
+        cur.updateElement(el.id, { x: snapped.x, y: snapped.y })
+      }
     }
     const onUp = () => {
       setSnapGuides([]); pushHistory()
@@ -130,25 +217,25 @@ export const Canvas: React.FC = () => {
     }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
-  }, [selectedIds, selectElement, zoom, elements, canvasWidth, canvasHeight, snapEnabled, updateElement, pushHistory])
+  }, [selectedIds, selectElement, zoom, elements, canvasWidth, canvasHeight, snapEnabled, updateElement, pushHistory, activeTool])
 
   const onResizeStart = useCallback((e: React.MouseEvent, el: CanvasElement, handle: string) => {
     e.stopPropagation(); e.preventDefault()
-    resizeRef.current = { el, handle, startX: e.clientX, startY: e.clientY, origW: el.width, origH: el.height, origX: el.x, origY: el.y, ratio: el.width / el.height }
+    resizeRef.current = { el, handle, startX: e.clientX, startY: e.clientY, origW: el.width, origH: el.height, origX: el.x, origY: el.y }
     const onMove = (ev: MouseEvent) => {
       if (!resizeRef.current) return
-      const { handle, startX, startY, origW, origH, origX, origY, ratio } = resizeRef.current
+      const { handle, startX, startY, origW, origH, origX, origY } = resizeRef.current
       const dx = (ev.clientX - startX) / zoom, dy = (ev.clientY - startY) / zoom
       let nw = origW, nh = origH, nx = origX, ny = origY
 
-      if (handle === 'br') { nw = Math.max(20, origW + dx); nh = Math.max(20, origH + dy) }
-      else if (handle === 'bl') { nw = Math.max(20, origW - dx); nx = origX + origW - nw; nh = Math.max(20, origH + dy) }
-      else if (handle === 'tr') { nw = Math.max(20, origW + dx); nh = Math.max(20, origH - dy); ny = origY + origH - nh }
-      else if (handle === 'tl') { nw = Math.max(20, origW - dx); nx = origX + origW - nw; nh = Math.max(20, origH - dy); ny = origY + origH - nh }
-      else if (handle === 'mr') { nw = Math.max(20, origW + dx) }
-      else if (handle === 'ml') { nw = Math.max(20, origW - dx); nx = origX + origW - nw }
-      else if (handle === 'bm') { nh = Math.max(20, origH + dy) }
-      else if (handle === 'tm') { nh = Math.max(20, origH - dy); ny = origY + origH - nh }
+      if (handle === 'br') { nw = Math.max(4, origW + dx); nh = Math.max(4, origH + dy) }
+      else if (handle === 'bl') { nw = Math.max(4, origW - dx); nx = origX + origW - nw; nh = Math.max(4, origH + dy) }
+      else if (handle === 'tr') { nw = Math.max(4, origW + dx); nh = Math.max(4, origH - dy); ny = origY + origH - nh }
+      else if (handle === 'tl') { nw = Math.max(4, origW - dx); nx = origX + origW - nw; nh = Math.max(4, origH - dy); ny = origY + origH - nh }
+      else if (handle === 'mr') { nw = Math.max(4, origW + dx) }
+      else if (handle === 'ml') { nw = Math.max(4, origW - dx); nx = origX + origW - nw }
+      else if (handle === 'bm') { nh = Math.max(4, origH + dy) }
+      else if (handle === 'tm') { nh = Math.max(4, origH - dy); ny = origY + origH - nh }
 
       updateElement(el.id, { width: Math.round(nw), height: Math.round(nh), x: Math.round(nx), y: Math.round(ny) })
     }
@@ -231,64 +318,67 @@ export const Canvas: React.FC = () => {
   }
 
   const sortedEls = [...elements].sort((a, b) => a.zIndex - b.zIndex)
+  const pageBackground = pages[currentPageIndex]?.background || '#ffffff'
 
   return (
-    <div ref={wrapRef} onWheel={onWheel} onDrop={onDrop} onDragOver={e => e.preventDefault()}
+    <div
+      ref={wrapRef}
+      onWheel={onWheel}
+      onDrop={onDrop}
+      onDragOver={e => e.preventDefault()}
+      onMouseDown={onWrapMouseDown}
       style={{
-        flex:1, overflow:'auto', display:'flex', alignItems:'center', justifyContent:'center',
-        padding:32, position:'relative', background:'var(--bg0)',
-        backgroundImage: showGrid ? 'radial-gradient(var(--bg3) 1px, transparent 1px)' : undefined,
+        flex: 1, overflow: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 48, position: 'relative',
+        background: 'var(--bg0)',
+        backgroundImage: showGrid ? 'radial-gradient(var(--bg3) 1.5px, transparent 1.5px)' : undefined,
         backgroundSize: showGrid ? `${20*zoom}px ${20*zoom}px` : undefined,
+        cursor: activeTool === 'hand' ? (isPanning ? 'grabbing' : 'grab') : 'default',
       }}>
 
-      {/* 줌 래퍼 — 거리 가이드를 overflow:hidden 밖에서 렌더 */}
-      <div style={{ position:'relative', transform:`scale(${zoom})`, transformOrigin:'center center', flexShrink:0 }}>
-        {/* 거리 가이드 */}
+      <div style={{ position: 'relative', transform: `scale(${zoom})`, transformOrigin: 'center center', flexShrink: 0 }}>
         {renderDistanceGuides()}
 
-        {/* 캔버스 */}
         <div id="naps-canvas" ref={canvasRef} onMouseDown={onCanvasMouseDown}
           style={{
-            width:canvasWidth, height:canvasHeight,
-            background: pages[currentPageIndex]?.background || '#ffffff',
-            position:'relative', overflow:'hidden', flexShrink:0,
-            boxShadow:'0 0 0 1px rgba(0,0,0,0.1), 0 8px 48px rgba(0,0,0,0.4)',
-            cursor: activeTool==='text'?'text':activeTool==='shape'?'crosshair':activeTool==='line'?'crosshair':'default',
+            width: canvasWidth, height: canvasHeight,
+            background: pageBackground,
+            position: 'relative', overflow: 'hidden', flexShrink: 0,
+            boxShadow: '0 0 0 1px rgba(0,0,0,0.12), 0 8px 48px rgba(0,0,0,0.35)',
+            cursor: activeTool === 'text' ? 'text'
+              : activeTool === 'shape' || activeTool === 'line' ? 'crosshair'
+              : activeTool === 'hand' ? (isPanning ? 'grabbing' : 'grab')
+              : 'default',
           }}>
 
-          {/* 스냅 가이드 */}
           {snapGuides.map((g, i) => (
-            <div key={i} style={{ position:'absolute', zIndex:9999, pointerEvents:'none', background:'rgba(74,222,128,0.7)', ...(g.type==='h' ? {left:0,right:0,top:g.pos,height:1} : {top:0,bottom:0,left:g.pos,width:1}) }} />
+            <div key={i} style={{ position: 'absolute', zIndex: 9999, pointerEvents: 'none', background: 'rgba(74,222,128,0.7)', ...(g.type==='h' ? {left:0,right:0,top:g.pos,height:1} : {top:0,bottom:0,left:g.pos,width:1}) }} />
           ))}
 
-          {/* 워터마크 */}
           {watermarkEnabled && (
-            <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none', zIndex:9998, transform:'rotate(-30deg)', fontSize:Math.max(16,canvasWidth*0.05), fontWeight:500, color:'rgba(0,0,0,0.08)', whiteSpace:'nowrap', userSelect:'none' }}>
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 9998, transform: 'rotate(-30deg)', fontSize: Math.max(16, canvasWidth * 0.05), fontWeight: 500, color: 'rgba(0,0,0,0.08)', whiteSpace: 'nowrap', userSelect: 'none' }}>
               {watermark}
             </div>
           )}
 
-          {/* 드래그 선택 박스 */}
           {selBox && (
-            <div style={{ position:'absolute', zIndex:9997, pointerEvents:'none', left:selBox.x, top:selBox.y, width:selBox.w, height:selBox.h, border:'1.5px dashed #4ade80', background:'rgba(74,222,128,0.06)' }} />
+            <div style={{ position: 'absolute', zIndex: 9997, pointerEvents: 'none', left: selBox.x, top: selBox.y, width: selBox.w, height: selBox.h, border: '1.5px dashed #4ade80', background: 'rgba(74,222,128,0.06)' }} />
           )}
 
           {sortedEls.map(el => (
             <CanvasElementRenderer key={el.id} element={el} zoom={zoom}
-              isSelected={selectedIds.length===1 && selectedIds[0]===el.id}
-              isMultiSelected={selectedIds.length>1 && selectedIds.includes(el.id)}
+              isSelected={selectedIds.length === 1 && selectedIds[0] === el.id}
+              isMultiSelected={selectedIds.length > 1 && selectedIds.includes(el.id)}
               onDragStart={onDragStart} onResizeStart={onResizeStart} />
           ))}
         </div>
       </div>
 
-      {/* 줌 인디케이터 */}
-      <div style={{ position:'absolute', bottom:16, right:16, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:6, padding:'4px 8px', fontSize:11, color:'var(--text2)', fontFamily:'var(--font-mono)', display:'flex', alignItems:'center', gap:6 }}>
-        <button onClick={() => setZoom(Math.max(0.1, zoom-0.1))} style={{ color:'var(--text1)', fontSize:14, lineHeight:1, background:'none', border:'none', cursor:'pointer' }}>−</button>
-        <span>{Math.round(zoom*100)}%</span>
-        <button onClick={() => setZoom(Math.min(4, zoom+0.1))} style={{ color:'var(--text1)', fontSize:14, lineHeight:1, background:'none', border:'none', cursor:'pointer' }}>+</button>
-        <button onClick={() => { const z=fitZoom(canvasWidth,canvasHeight,wrapRef.current?.clientWidth||800,wrapRef.current?.clientHeight||600); setZoom(z) }}
-          style={{ color:'var(--text2)', fontSize:10, background:'none', border:'none', cursor:'pointer', marginLeft:2 }}>맞춤</button>
+      <div style={{ position: 'absolute', bottom: 16, right: 16, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, padding: '4px 10px', fontSize: 11, color: 'var(--text2)', fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <button onClick={() => setZoom(Math.max(0.1, zoom - 0.1))} style={{ color: 'var(--text1)', fontSize: 16, lineHeight: 1, background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px' }}>−</button>
+        <span style={{ minWidth: 36, textAlign: 'center' }}>{Math.round(zoom * 100)}%</span>
+        <button onClick={() => setZoom(Math.min(4, zoom + 0.1))} style={{ color: 'var(--text1)', fontSize: 16, lineHeight: 1, background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px' }}>+</button>
+        <button onClick={() => { const z = fitZoom(canvasWidth, canvasHeight, wrapRef.current?.clientWidth || 800, wrapRef.current?.clientHeight || 600); setZoom(z) }} style={{ color: 'var(--text2)', fontSize: 11, background: 'none', border: 'none', cursor: 'pointer', marginLeft: 4, padding: '2px 6px', borderRadius: 4, border: '1px solid var(--border)' }}>맞춤</button>
       </div>
     </div>
   )

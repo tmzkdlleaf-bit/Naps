@@ -176,6 +176,7 @@ export const CanvasElementRenderer: React.FC<Props> = ({
   return (
     <div data-el-id={el.id} style={style}
       onMouseDown={e => { if (!el.locked && activeTool === 'select') onDragStart(e, el) }}
+      onClick={e => { if (el.type === 'text' && !el.locked) { e.stopPropagation(); setEditing(true) } }}
       onDoubleClick={handleDoubleClick}>
 
       {isSelected && !isMultiSelected && (
