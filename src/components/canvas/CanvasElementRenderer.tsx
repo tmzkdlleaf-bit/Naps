@@ -202,7 +202,7 @@ export const CanvasElementRenderer: React.FC<Props> = ({
                 onBlur={e => { updateElement(el.id, { innerText: e.target.value }); handleBlur() }}
                 style={{
                   background:'transparent', border:'none', outline:'none', resize:'none',
-                  fontSize: el.innerTextSize || 14, color: el.innerTextColor || '#111',
+                  fontSize: el.innerTextSize || 14, color: el.innerTextColor || '#111111',
                   fontWeight: el.innerTextWeight || 'normal', textAlign: el.innerTextAlign as any || 'center',
                   width:'90%', textShadow:'0 0 4px rgba(255,255,255,0.8)',
                 }}

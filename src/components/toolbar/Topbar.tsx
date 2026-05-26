@@ -139,9 +139,9 @@ export const Topbar: React.FC = () => {
           rotation:0, flipH:false, flipV:false
         }
         if (el.type === 'text') {
-          addElement({ ...base, type:'text', text:el.text||'텍스트', fontSize:el.fontSize||16, fontFamily:'Noto Sans KR', fontWeight:el.fontWeight||'normal', color:el.color||'#111', fill:'transparent', textAlign:'left', lineHeight:1.4, fontStyle:'normal', textDecoration:'none' })
+          addElement({ ...base, type:'text', text:el.text||'텍스트', fontSize:el.fontSize||16, fontFamily:'Noto Sans KR', fontWeight:el.fontWeight||'normal', color:el.color||'#111111', fill:'transparent', textAlign:'left', lineHeight:1.4, fontStyle:'normal', textDecoration:'none' })
         } else {
-          addElement({ ...base, type:'shape', shapeType:el.shapeType||'rect', fill:el.fill||'#e2e8f0', stroke:el.stroke||'transparent', strokeWidth:1, borderRadius:4, innerText:'', innerTextSize:14, innerTextColor:'#111', innerTextWeight:'normal', innerTextAlign:'center' })
+          addElement({ ...base, type:'shape', shapeType:el.shapeType||'rect', fill:el.fill||'#e2e8f0', stroke:el.stroke||'transparent', strokeWidth:1, borderRadius:4, innerText:'', innerTextSize:14, innerTextColor:'#111111', innerTextWeight:'normal', innerTextAlign:'center' })
         }
       })
       toast.success('AI 템플릿 생성 완료!')
@@ -274,7 +274,7 @@ export const Topbar: React.FC = () => {
         {iconBtn(() => fmt('textAlign', 'center'), AlignCenter, '가운데')}
         {iconBtn(() => fmt('textAlign', 'right'), AlignRight, '오른쪽')}
         <div title="글자색" style={{ position:'relative', display:'flex', alignItems:'center' }}>
-          <div style={{ width:20, height:20, borderRadius:4, border:'1px solid var(--border)', background:selectedEl.color||'#111', cursor:'pointer' }} onClick={() => (document.getElementById('tc-pick') as HTMLInputElement)?.click()} />
+          <div style={{ width:20, height:20, borderRadius:4, border:'1px solid var(--border)', background:selectedEl.color||'#111111', cursor:'pointer' }} onClick={() => (document.getElementById('tc-pick') as HTMLInputElement)?.click()} />
           <input type="color" id="tc-pick" value={selectedEl.color||'#111111'} onChange={e => fmt('color', e.target.value)} style={{ position:'absolute', opacity:0, width:0, height:0, pointerEvents:'none' }} />
         </div>
         <div title="배경색" style={{ position:'relative', display:'flex', alignItems:'center' }}>
@@ -329,7 +329,7 @@ export const Topbar: React.FC = () => {
         <input type="number" min={8} max={72} value={selectedEl.innerTextSize||14} onChange={e => fmt('innerTextSize', parseInt(e.target.value))}
           style={{ width:36, height:26, padding:'0 4px', border:'1px solid var(--border)', borderRadius:5, background:'var(--bg2)', color:'var(--text0)', fontSize:12, textAlign:'center' }} />
         <div style={{ position:'relative' }}>
-          <div style={{ width:20, height:20, borderRadius:4, border:'1px solid var(--border)', background:selectedEl.innerTextColor||'#111', cursor:'pointer' }} onClick={() => (document.getElementById('itc-pick') as HTMLInputElement)?.click()} />
+          <div style={{ width:20, height:20, borderRadius:4, border:'1px solid var(--border)', background:selectedEl.innerTextColor||'#111111', cursor:'pointer' }} onClick={() => (document.getElementById('itc-pick') as HTMLInputElement)?.click()} />
           <input type="color" id="itc-pick" value={selectedEl.innerTextColor || '#111111'} onChange={e => fmt('innerTextColor', e.target.value)} style={{ position:'absolute', opacity:0, width:0, height:0, pointerEvents:'none' }} />
         </div>
         {sep()}
