@@ -14,9 +14,12 @@ const SHORTCUTS = [
   { key: 'Delete', desc: '선택 요소 삭제' },
   { key: 'Ctrl+Z', desc: '실행 취소' },
   { key: 'Ctrl+Shift+Z', desc: '다시 실행' },
+  { key: 'Ctrl+C', desc: '복사' },
+  { key: 'Ctrl+V', desc: '붙여넣기' },
   { key: 'Ctrl+D', desc: '복제' },
   { key: 'Ctrl+G', desc: '그룹화' },
   { key: 'Ctrl+Shift+G', desc: '그룹 해제' },
+  { key: 'Ctrl+클릭', desc: '다중 선택' },
   { key: 'Escape', desc: '선택 해제' },
   { key: '휠', desc: '확대/축소' },
 ]

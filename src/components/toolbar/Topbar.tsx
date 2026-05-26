@@ -4,7 +4,7 @@ import {
   Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight,
   Layers, FlipHorizontal2, FlipVertical2, RotateCw, Trash2,
   Undo2, Redo2, Grid3X3, Magnet, Save, FileDown, Link,
-  Droplets, Sun, Moon, Leaf, Sparkles, Copy, Lock,
+  Droplets, Sun, Moon, Leaf, Sparkles, Copy, Lock, ClipboardPaste,
   ChevronDown, Triangle, Circle, Star, ArrowRight, MessageSquare, Minus as LineIcon,
   Group, Ungroup,
 } from 'lucide-react'
@@ -292,6 +292,8 @@ export const Topbar: React.FC = () => {
         {iconBtn(layerToFront, Layers, '맨 앞으로')}
         {iconBtn(lockSelected, Lock, '잠금', false, false, selectedEl?.locked)}
         {iconBtn(duplicateSelected, Copy, '복제')}
+        {iconBtn(() => useStore.getState().copySelected(), Copy, '복사 (Ctrl+C)')}
+        {iconBtn(() => useStore.getState().pasteSelected(), ClipboardPaste, '붙여넣기 (Ctrl+V)')}
         {multiSel && iconBtn(groupSelected, Group, '그룹화 (Ctrl+G)')}
         {selectedEl && iconBtn(ungroupSelected, Ungroup, '그룹 해제 (Ctrl+Shift+G)')}
         {iconBtn(deleteSelected, Trash2, '삭제', true)}

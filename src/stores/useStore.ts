@@ -75,6 +75,8 @@ interface State {
   groupSelected: () => void
   ungroupSelected: () => void
   lockSelected: () => void
+  copySelected: () => void
+  pasteSelected: () => void
   activeTool: ToolType
   setTool: (t: ToolType) => void
   activeShapeType: string
@@ -296,6 +298,30 @@ export const useStore = create<State>((set, get) => ({
   },
 
   lockSelected: () => { const { selectedIds } = get(); set(s => ({ elements: s.elements.map(e => selectedIds.includes(e.id) ? { ...e, locked: !e.locked } : e) })) },
+
+  copySelected: () => {
+    const { selectedIds, elements } = get()
+    const copied = elements.filter(e => selectedIds.includes(e.id))
+    if (copied.length === 0) return
+    localStorage.setItem('naps-clipboard', JSON.stringify(copied))
+    toast.success(`${copied.length}개 복사됨`)
+  },
+  pasteSelected: () => {
+    const { elements } = get()
+    const raw = localStorage.getItem('naps-clipboard')
+    if (!raw) return
+    const copied: CanvasElement[] = JSON.parse(raw)
+    const pasted = copied.map((e, i) => ({
+      ...e,
+      id: uuidv4(),
+      x: e.x + 16,
+      y: e.y + 16,
+      zIndex: elements.length + i + 1,
+    }))
+    set(s => ({ elements: [...s.elements, ...pasted], selectedIds: pasted.map(e => e.id) }))
+    get().pushHistory()
+    toast.success(`${pasted.length}개 붙여넣기됨`)
+  },
 
   activeTool: 'select',
   setTool: (activeTool) => set({ activeTool }),

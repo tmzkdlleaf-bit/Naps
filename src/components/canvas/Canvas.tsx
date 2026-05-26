@@ -48,10 +48,12 @@ export const Canvas: React.FC = () => {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
-      const { deleteSelected, duplicateSelected, undo, redo, ungroupSelected, groupSelected } = useStore.getState()
+      const { deleteSelected, duplicateSelected, undo, redo, ungroupSelected, groupSelected, copySelected, pasteSelected } = useStore.getState()
       if (e.key === 'Delete' || e.key === 'Backspace') deleteSelected()
       if ((e.metaKey || e.ctrlKey) && e.key === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo() }
       if ((e.metaKey || e.ctrlKey) && e.key === 'd') { e.preventDefault(); duplicateSelected() }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'c') { e.preventDefault(); copySelected() }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'v') { e.preventDefault(); pasteSelected() }
       if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key === 'g') { e.preventDefault(); groupSelected() }
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'G') { e.preventDefault(); ungroupSelected() }
       if (e.key === 'Escape') { selectElement(null); setTool('select') }
@@ -181,6 +183,13 @@ export const Canvas: React.FC = () => {
   const onDragStart = useCallback((e: React.MouseEvent, el: CanvasElement) => {
     if (el.locked || activeTool !== 'select') return
     e.stopPropagation(); e.preventDefault()
+
+    // Ctrl/Cmd 클릭으로 다중 선택 토글
+    if (e.ctrlKey || e.metaKey) {
+      selectElement(el.id, true)
+      return
+    }
+
     if (!selectedIds.includes(el.id)) selectElement(el.id, e.shiftKey)
 
     const state = useStore.getState()
