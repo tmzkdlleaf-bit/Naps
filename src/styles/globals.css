@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Nanum+Gothic:wght@400;700&family=Nanum+Myeongjo:wght@400;700&family=Nanum+Pen+Script&family=Black+Han+Sans&family=Jua&family=Gugi&family=Hahmlet:wght@400;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
-
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
@@ -25,14 +23,12 @@
   --red: #dc2626; --amber: #d97706; --blue: #2563eb; --purple: #7c3aed;
   --scrollbar: rgba(0,0,0,0.08);
 }
-/* 그린 테마 - 차분하고 눈에 편안한 색상 */
 [data-theme="green"] {
-  --bg0: #0d1610; --bg1: #121e15; --bg2: #172619; --bg3: #1d301f; --bg4: #233b25;
-  --border: rgba(160,210,170,0.08); --border2: rgba(160,210,170,0.14);
-  --text0: #ddeee0; --text1: #9dbfa4; --text2: #5a7a5f;
-  --accent: #6dbf7e; --accent-dim: rgba(109,191,126,0.12); --accent-hover: #86d496;
-  --red: #e07070; --amber: #c9a84c; --blue: #6aabe0; --purple: #9b7fc4;
-  --scrollbar: rgba(109,191,126,0.08);
+  --bg0: #06120a; --bg1: #0b1f12; --bg2: #0f2a17; --bg3: #14361e; --bg4: #1a4226;
+  --border: rgba(74,222,128,0.08); --border2: rgba(74,222,128,0.15);
+  --text0: #e8f5ec; --text1: #a8d5b2; --text2: #5a9068;
+  --accent: #4ade80; --accent-dim: rgba(74,222,128,0.12); --accent-hover: #86efac;
+  --scrollbar: rgba(74,222,128,0.08);
 }
 
 html, body, #root { height:100%; overflow:hidden; font-family:var(--font-sans); background:var(--bg0); color:var(--text0); font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased; }
@@ -53,3 +49,45 @@ input, select, textarea { font-family:var(--font-sans); }
 
 /* 페이지 썸네일 hover */
 .page-thumb-wrap:hover .page-actions { opacity:1 !important; }
+
+/* ── 슬라이더 스타일 ── */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 4px;
+  background: var(--bg4);
+  outline: none;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: grab;
+  border: 2px solid var(--bg1);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  transition: transform 0.1s;
+}
+input[type="range"]::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.2);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: grab;
+  border: 2px solid var(--bg1);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+input[type="range"]::-moz-range-track {
+  height: 4px;
+  border-radius: 4px;
+  background: var(--bg4);
+}

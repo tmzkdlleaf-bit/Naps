@@ -65,18 +65,18 @@ export const Canvas: React.FC = () => {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  // 휠로 확대/축소 - passive event listener 문제 해결
+  // 휠로 확대/축소 - passive: false 로 등록해야 preventDefault 가능
   useEffect(() => {
-    const el = wrapRef.current
-    if (!el) return
+    const wrap = wrapRef.current
+    if (!wrap) return
     const onWheel = (e: WheelEvent) => {
       e.preventDefault()
-      const delta = e.deltaY < 0 ? 1.1 : 0.9
-      setZoom(z => Math.min(Math.max(z * delta, 0.1), 4))
+      const delta = e.deltaY < 0 ? 1.08 : 0.92
+      setZoom(z => Math.min(Math.max(z * delta, 0.05), 5))
     }
-    el.addEventListener('wheel', onWheel, { passive: false })
-    return () => el.removeEventListener('wheel', onWheel)
-  }, [setZoom])
+    wrap.addEventListener('wheel', onWheel, { passive: false })
+    return () => wrap.removeEventListener('wheel', onWheel)
+  }) // 의존성 없이 매 렌더마다 재등록해서 ref 확실히 연결
 
   // 손 도구: 스페이스바 누르는 동안도 패닝 활성화
   const [spaceDown, setSpaceDown] = useState(false)
