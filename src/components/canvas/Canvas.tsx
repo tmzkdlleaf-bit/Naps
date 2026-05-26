@@ -24,7 +24,8 @@ export const Canvas: React.FC = () => {
   const dragRef = useRef<{ el: CanvasElement, startX: number, startY: number, elX: number, elY: number } | null>(null)
   const resizeRef = useRef<{ el: CanvasElement, handle: string, startX: number, startY: number, origW: number, origH: number, origX: number, origY: number } | null>(null)
   const selBoxRef = useRef<{ startX: number; startY: number } | null>(null)
-  const [selBox, setSelBox] = useState<{ x: number; y: number; w: number; h: number } | null>(null)
+  const selBoxStateRef = useRef<{ x:number;y:number;w:number;h:number }|null>(null)
+  const [selBox, setSelBox] = useState<{ x:number;y:number;w:number;h:number }|null>(null)
   // 도형/선 드래그 그리기
   const drawRef = useRef<{ startX: number; startY: number; elId: string } | null>(null)
   // 손 도구 패닝
@@ -48,7 +49,16 @@ export const Canvas: React.FC = () => {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
-      const { deleteSelected, duplicateSelected, undo, redo, ungroupSelected, groupSelected, copySelected, pasteSelected } = useStore.getState()
+      const { deleteSelected, duplicateSelected, undo, redo, ungroupSelected, groupSelected, copySelected, pasteSelected, deletePage, currentPageIndex, pages } = useStore.getState()
+
+      // 페이지 썸네일에 포커스가 있을 때 Delete/Backspace → 페이지 삭제
+      if ((e.key === 'Delete' || e.key === 'Backspace') && target.dataset.pageIdx !== undefined) {
+        e.preventDefault()
+        const idx = parseInt(target.dataset.pageIdx)
+        if (!isNaN(idx)) deletePage(idx)
+        return
+      }
+
       if (e.key === 'Delete' || e.key === 'Backspace') deleteSelected()
       if ((e.metaKey || e.ctrlKey) && e.key === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo() }
       if ((e.metaKey || e.ctrlKey) && e.key === 'd') { e.preventDefault(); duplicateSelected() }
@@ -175,28 +185,28 @@ export const Canvas: React.FC = () => {
       const onMove = (ev: MouseEvent) => {
         if (!selBoxRef.current || !canvasRef.current) return
         const p = getCanvasPos(ev.clientX, ev.clientY, canvasRef.current, zoom)
-        setSelBox({
+        const box = {
           x: Math.min(p.x, selBoxRef.current.startX),
           y: Math.min(p.y, selBoxRef.current.startY),
           w: Math.abs(p.x - selBoxRef.current.startX),
           h: Math.abs(p.y - selBoxRef.current.startY),
-        })
+        }
+        selBoxStateRef.current = box
+        setSelBox(box)
       }
       const onUp = () => {
-        if (selBoxRef.current) {
-          setSelBox(prev => {
-            if (prev && (prev.w > 4 || prev.h > 4)) {
-              const cur = prev
-              const inBox = useStore.getState().elements.filter(el =>
-                el.x < cur.x + cur.w && el.x + el.width > cur.x &&
-                el.y < cur.y + cur.h && el.y + el.height > cur.y
-              )
-              inBox.forEach((el, i) => selectElement(el.id, i > 0))
-            }
-            return null
-          })
-        }
+        const cur = selBoxStateRef.current
+        setSelBox(null)
+        selBoxStateRef.current = null
         selBoxRef.current = null
+        if (cur && (cur.w > 4 || cur.h > 4)) {
+          const { elements: els } = useStore.getState()
+          const inBox = els.filter(el =>
+            el.x < cur.x + cur.w && el.x + el.width > cur.x &&
+            el.y < cur.y + cur.h && el.y + el.height > cur.y
+          )
+          inBox.forEach((el, i) => selectElement(el.id, i > 0))
+        }
         window.removeEventListener('mousemove', onMove)
         window.removeEventListener('mouseup', onUp)
       }

@@ -116,6 +116,7 @@ interface State {
   setPageBackground: (color: string) => void
   favoriteColors: string[]
   addFavoriteColor: (color: string) => void
+  removeFavoriteColor: (color: string) => void
 }
 
 export const useStore = create<State>((set, get) => ({
@@ -469,11 +470,23 @@ export const useStore = create<State>((set, get) => ({
     set({ pages: newPages })
     get().pushHistory()
   },
-  favoriteColors: [],
+  favoriteColors: JSON.parse(localStorage.getItem('naps-fav-colors') || '[]'),
   addFavoriteColor: (color) => {
+    if (!color || color === 'transparent') return
+    // 3자리 hex → 6자리 변환
+    const normalize = (c: string) => /^#[0-9a-fA-F]{3}$/.test(c)
+      ? `#${c[1]}${c[1]}${c[2]}${c[2]}${c[3]}${c[3]}` : c
+    const nc = normalize(color)
     set(s => {
-      const existing = s.favoriteColors.filter(c => c !== color)
-      const updated = [color, ...existing].slice(0, 16)
+      const existing = s.favoriteColors.filter(c => c !== nc)
+      const updated = [nc, ...existing].slice(0, 16)
+      localStorage.setItem('naps-fav-colors', JSON.stringify(updated))
+      return { favoriteColors: updated }
+    })
+  },
+  removeFavoriteColor: (color) => {
+    set(s => {
+      const updated = s.favoriteColors.filter(c => c !== color)
       localStorage.setItem('naps-fav-colors', JSON.stringify(updated))
       return { favoriteColors: updated }
     })

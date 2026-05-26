@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Nanum+Gothic:wght@400;700&family=Nanum+Myeongjo:wght@400;700&family=Nanum+Pen+Script&family=Black+Han+Sans&family=Jua&family=Gugi&family=Hahmlet:wght@400;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
@@ -32,9 +34,6 @@
 }
 
 html, body, #root { height:100%; overflow:hidden; font-family:var(--font-sans); background:var(--bg0); color:var(--text0); font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased; }
-
-/* 한글 폰트 */
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Nanum+Gothic:wght@400;700&family=Nanum+Myeongjo:wght@400;700&family=Nanum+Pen+Script&family=Black+Han+Sans&family=Jua&family=Gugi&family=Hahmlet:wght@400;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
 
 ::-webkit-scrollbar { width:4px; height:4px; }
 ::-webkit-scrollbar-track { background:transparent; }

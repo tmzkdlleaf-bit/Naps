@@ -60,9 +60,18 @@ export const CanvasElementRenderer: React.FC<Props> = ({
 
   const renderShape = () => {
     const { shapeType = 'rect', fill = '#e2e8f0', stroke = 'transparent', strokeWidth = 0, borderRadius = 0 } = el
-    const w = el.width, h = el.height
-    const clipId = `clip_${el.id}`
-    const imgFill = el.imageFill // 도형 내 이미지 URL
+    const w = Math.max(el.width || 1, 1)   // NaN/0 방지
+    const h = Math.max(el.height || 1, 1)
+    const imgFill = el.imageFill
+
+    // 3자리 hex → 6자리 변환
+    const normalizeColor = (c: string) => {
+      if (!c || c === 'transparent' || c === 'none') return c
+      if (/^#[0-9a-fA-F]{3}$/.test(c)) return `#${c[1]}${c[1]}${c[2]}${c[2]}${c[3]}${c[3]}`
+      return c
+    }
+    const safeFill = normalizeColor(fill)
+    const safeStroke = normalizeColor(stroke)
 
     let shapeEl: React.ReactNode
     let clipEl: React.ReactNode
@@ -70,49 +79,46 @@ export const CanvasElementRenderer: React.FC<Props> = ({
     if (shapeType === 'rect') {
       shapeEl = (
         <rect x={strokeWidth/2} y={strokeWidth/2}
-          width={w - strokeWidth} height={h - strokeWidth}
+          width={Math.max(w - strokeWidth, 1)} height={Math.max(h - strokeWidth, 1)}
           rx={borderRadius} ry={borderRadius}
-          fill={imgFill ? `url(#img_${el.id})` : fill}
-          stroke={stroke} strokeWidth={strokeWidth} />
+          fill={imgFill ? `url(#img_${el.id})` : safeFill}
+          stroke={safeStroke} strokeWidth={strokeWidth} />
       )
-      if (imgFill) {
-        clipEl = (
-          <defs>
-            <pattern id={`img_${el.id}`} patternUnits="objectBoundingBox" width="1" height="1">
-              <image href={imgFill} x="0" y="0" width={w} height={h} preserveAspectRatio="xMidYMid slice" />
-            </pattern>
-          </defs>
-        )
-      }
+      if (imgFill) clipEl = (
+        <defs>
+          <pattern id={`img_${el.id}`} patternUnits="objectBoundingBox" width="1" height="1">
+            <image href={imgFill} x="0" y="0" width={w} height={h} preserveAspectRatio="xMidYMid slice" />
+          </pattern>
+        </defs>
+      )
     } else if (shapeType === 'ellipse') {
       shapeEl = (
-        <ellipse cx={w/2} cy={h/2} rx={w/2 - strokeWidth/2} ry={h/2 - strokeWidth/2}
-          fill={imgFill ? `url(#img_${el.id})` : fill}
-          stroke={stroke} strokeWidth={strokeWidth} />
+        <ellipse cx={w/2} cy={h/2}
+          rx={Math.max(w/2 - strokeWidth/2, 0.5)} ry={Math.max(h/2 - strokeWidth/2, 0.5)}
+          fill={imgFill ? `url(#img_${el.id})` : safeFill}
+          stroke={safeStroke} strokeWidth={strokeWidth} />
       )
-      if (imgFill) {
-        clipEl = (
-          <defs>
-            <pattern id={`img_${el.id}`} patternUnits="objectBoundingBox" width="1" height="1">
-              <image href={imgFill} x="0" y="0" width={w} height={h} preserveAspectRatio="xMidYMid slice" />
-            </pattern>
-          </defs>
-        )
-      }
+      if (imgFill) clipEl = (
+        <defs>
+          <pattern id={`img_${el.id}`} patternUnits="objectBoundingBox" width="1" height="1">
+            <image href={imgFill} x="0" y="0" width={w} height={h} preserveAspectRatio="xMidYMid slice" />
+          </pattern>
+        </defs>
+      )
     } else if (['line_straight','line_dashed','line_dotted'].includes(shapeType)) {
       const dash = shapeType === 'line_dashed' ? '10,5' : shapeType === 'line_dotted' ? '2,5' : undefined
       const mid = `arr_${el.id}`
+      const lh = Math.max(h, (el.strokeWidth||2)+20)
       return (
-        <svg width={w} height={Math.max(h, (el.strokeWidth||2)+20)} viewBox={`0 0 ${w} ${Math.max(h, (el.strokeWidth||2)+20)}`}
+        <svg width={w} height={lh} viewBox={`0 0 ${w} ${lh}`}
           style={{ display:'block', overflow:'visible', position:'absolute', inset:0 }}>
           <defs>
             <marker id={mid} markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-              <path d="M0,0 L0,6 L8,3 z" fill={stroke||'#475569'} />
+              <path d="M0,0 L0,6 L8,3 z" fill={safeStroke||'#475569'} />
             </marker>
           </defs>
-          <line x1={4} y1={Math.max(h,(el.strokeWidth||2)+20)/2}
-            x2={w-4} y2={Math.max(h,(el.strokeWidth||2)+20)/2}
-            stroke={stroke||'#475569'} strokeWidth={el.strokeWidth||2}
+          <line x1={4} y1={lh/2} x2={w-4} y2={lh/2}
+            stroke={safeStroke||'#475569'} strokeWidth={el.strokeWidth||2}
             strokeDasharray={dash}
             markerStart={el.arrowStart ? `url(#${mid})` : undefined}
             markerEnd={el.arrowEnd ? `url(#${mid})` : undefined} />
@@ -129,7 +135,7 @@ export const CanvasElementRenderer: React.FC<Props> = ({
               </pattern>
             </defs>
           )}
-          <path d={path} fill={imgFill ? `url(#img_${el.id})` : fill} stroke={stroke} strokeWidth={strokeWidth} />
+          <path d={path} fill={imgFill ? `url(#img_${el.id})` : safeFill} stroke={safeStroke} strokeWidth={strokeWidth} />
         </>
       )
     }
@@ -141,9 +147,10 @@ export const CanvasElementRenderer: React.FC<Props> = ({
         {clipEl}
         {shapeEl}
         {innerText && !editingInner && (
-          <text x={w/2} y={h/2} textAnchor={el.innerTextAlign === 'left' ? 'start' : el.innerTextAlign === 'right' ? 'end' : 'middle'}
+          <text x={w/2} y={h/2}
+            textAnchor={el.innerTextAlign === 'left' ? 'start' : el.innerTextAlign === 'right' ? 'end' : 'middle'}
             dominantBaseline="central"
-            fill={el.innerTextColor || '#111111'}
+            fill={normalizeColor(el.innerTextColor || '#111111')}
             fontSize={el.innerTextSize || 14}
             fontWeight={el.innerTextWeight || 'normal'}
             style={{ userSelect:'none' }}>

@@ -34,7 +34,7 @@ export const RightPanel: React.FC = () => {
     canvasWidth, canvasHeight, setCanvasSize,
     pages, currentPageIndex, setPageBackground,
     autoSaveInterval, setAutoSaveInterval,
-    favoriteColors, addFavoriteColor,
+    favoriteColors, addFavoriteColor, removeFavoriteColor,
   } = useStore()
 
   const [tab, setTab] = useState<'properties' | 'layers' | 'env'>('properties')
@@ -176,20 +176,29 @@ export const RightPanel: React.FC = () => {
               </Section>
 
               {/* 즐겨찾기 색상 */}
-              {favoriteColors.length > 0 && (
-                <Section title="즐겨찾기 색상">
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                    {favoriteColors.map((color, i) => (
-                      <div key={i} title={color}
-                        style={{ width: 22, height: 22, borderRadius: 4, background: color, border: '1px solid var(--border)', cursor: 'pointer' }}
-                        onClick={() => {
-                          if (selectedEl) updateElement(selectedEl.id, selectedEl.type === 'shape' ? { fill: color } : { color })
-                          else setPageBackground(color)
-                        }} />
-                    ))}
+              <Section title="즐겨찾기 색상">
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
+                  {favoriteColors.map((color, i) => (
+                    <div key={i} title={`${color} (우클릭: 삭제)`}
+                      style={{ width: 22, height: 22, borderRadius: 4, background: color, border: '1px solid var(--border)', cursor: 'pointer', position: 'relative' }}
+                      onClick={() => {
+                        if (selectedEl) updateElement(selectedEl.id, selectedEl.type === 'shape' ? { fill: color } : { color })
+                        else setPageBackground(color)
+                      }}
+                      onContextMenu={e => { e.preventDefault(); removeFavoriteColor(color) }} />
+                  ))}
+                  {/* 색상 추가 버튼 */}
+                  <div style={{ position: 'relative' }}>
+                    <div title="색상 추가"
+                      style={{ width: 22, height: 22, borderRadius: 4, border: '1.5px dashed var(--border2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: 'var(--text2)' }}
+                      onClick={() => document.getElementById('fav-color-pick')?.click()}>+</div>
+                    <input type="color" id="fav-color-pick" defaultValue="#4ade80"
+                      onChange={e => addFavoriteColor(e.target.value)}
+                      style={{ position: 'absolute', opacity: 0, width: 0, height: 0, pointerEvents: 'none' }} />
                   </div>
-                </Section>
-              )}
+                </div>
+                {favoriteColors.length > 0 && <div style={{ fontSize: 10, color: 'var(--text2)' }}>우클릭으로 삭제</div>}
+              </Section>
 
               {/* 워터마크 */}
               <Section title="워터마크">

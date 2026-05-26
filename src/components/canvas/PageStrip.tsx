@@ -30,10 +30,15 @@ export const PageStrip: React.FC = () => {
         >
           <div
             onClick={() => goToPage(idx)}
-            onContextMenu={e => {
-              e.preventDefault()
-              // Could open context menu
+            tabIndex={0}
+            data-page-idx={idx}
+            onKeyDown={e => {
+              if (e.key === 'Delete' || e.key === 'Backspace') {
+                e.preventDefault()
+                if (pages.length > 1) deletePage(idx)
+              }
             }}
+            onContextMenu={e => e.preventDefault()}
             style={{
               width: 54, height: 62, borderRadius: 5,
               border: `2px solid ${currentPageIndex === idx ? 'var(--accent)' : 'var(--border)'}`,
@@ -41,6 +46,7 @@ export const PageStrip: React.FC = () => {
               position: 'relative', flexShrink: 0,
               transition: 'border-color 0.15s',
               boxShadow: currentPageIndex === idx ? '0 0 0 1px var(--accent)' : 'none',
+              outline: 'none',
             }}
             onMouseEnter={e => { if (currentPageIndex !== idx) (e.currentTarget as HTMLElement).style.borderColor = 'var(--border2)' }}
             onMouseLeave={e => { if (currentPageIndex !== idx) (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)' }}
