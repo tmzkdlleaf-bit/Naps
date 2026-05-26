@@ -57,6 +57,8 @@ interface State {
   renamePage: (idx: number, name: string) => void
   goToPage: (idx: number) => void
   duplicatePage: (idx: number) => void
+  copyPage: (idx: number) => void
+  pastePage: () => void
   elements: CanvasElement[]
   selectedIds: string[]
   selectElement: (id: string | null, multi?: boolean) => void
@@ -225,6 +227,24 @@ export const useStore = create<State>((set, get) => ({
     const newPages = [...pages.slice(0, idx + 1), copy, ...pages.slice(idx + 1)]
     set({ pages: newPages, currentPageIndex: idx + 1, elements: copy.elements, selectedIds: [] })
     get().pushHistory()
+  },
+
+  copyPage: (idx) => {
+    const { pages } = get()
+    localStorage.setItem('naps-page-clipboard', JSON.stringify(pages[idx]))
+    toast.success('페이지 복사됨')
+  },
+  pastePage: () => {
+    const raw = localStorage.getItem('naps-page-clipboard')
+    if (!raw) { toast.error('복사된 페이지 없음'); return }
+    const page = JSON.parse(raw)
+    const { pages, currentPageIndex, elements } = get()
+    const updated = pages.map((p, i) => i === currentPageIndex ? { ...p, elements } : p)
+    const newPage = { ...page, id: uuidv4(), name: page.name + ' 붙여넣기', elements: page.elements.map((e: any) => ({ ...e, id: uuidv4() })) }
+    const newPages = [...updated.slice(0, currentPageIndex + 1), newPage, ...updated.slice(currentPageIndex + 1)]
+    set({ pages: newPages, currentPageIndex: currentPageIndex + 1, elements: newPage.elements, selectedIds: [] })
+    get().pushHistory()
+    toast.success('페이지 붙여넣기 완료')
   },
 
   elements: [],

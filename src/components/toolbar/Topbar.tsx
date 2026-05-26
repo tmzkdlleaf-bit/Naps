@@ -9,7 +9,7 @@ import {
   Group, Ungroup,
 } from 'lucide-react'
 import { useStore } from '@/stores/useStore'
-import { exportToPDF, generateShareLink, copyToClipboard } from '@/utils/export'
+import { exportToPDF, exportAllPagesToPDF, exportToPNG, exportToJPG, generateShareLink, copyToClipboard } from '@/utils/export'
 import { makeShapeElement, makeLineElement } from '@/utils/canvas'
 import toast from 'react-hot-toast'
 
@@ -56,6 +56,7 @@ export const Topbar: React.FC = () => {
   const [showShapes, setShowShapes] = useState(false)
   const [showLines, setShowLines] = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
+  const [showExportMenu, setShowExportMenu] = useState(false)
 
   const selectedEl = selectedIds.length === 1 ? elements.find(e => e.id === selectedIds[0]) : null
   const multiSel = selectedIds.length > 1
@@ -65,10 +66,35 @@ export const Topbar: React.FC = () => {
     updateElements(selectedIds, { [key]: val })
   }
 
-  const handleExportPDF = async () => {
+  const getCanvas = () => {
     const el = document.getElementById('naps-canvas')
-    if (!el) { toast.error('캔버스를 찾을 수 없습니다'); return }
+    if (!el) { toast.error('캔버스를 찾을 수 없습니다'); return null }
+    return el
+  }
+
+  const handleExportPDF = async () => {
+    const el = getCanvas(); if (!el) return
+    setShowExportMenu(false)
     await exportToPDF(el, pages, currentPageIndex, canvasWidth, canvasHeight, activeFile?.name || 'portfolio')
+  }
+
+  const handleExportAllPDF = async () => {
+    const el = getCanvas(); if (!el) return
+    setShowExportMenu(false)
+    await exportAllPagesToPDF(el, pages, currentPageIndex, canvasWidth, canvasHeight, activeFile?.name || 'portfolio',
+      (idx) => useStore.getState().goToPage(idx))
+  }
+
+  const handleExportPNG = async () => {
+    const el = getCanvas(); if (!el) return
+    setShowExportMenu(false)
+    await exportToPNG(el, canvasWidth, canvasHeight, activeFile?.name || 'portfolio')
+  }
+
+  const handleExportJPG = async () => {
+    const el = getCanvas(); if (!el) return
+    setShowExportMenu(false)
+    await exportToJPG(el, canvasWidth, canvasHeight, activeFile?.name || 'portfolio')
   }
 
   const handleShareLink = async () => {
@@ -276,6 +302,26 @@ export const Topbar: React.FC = () => {
           title="테두리 두께"
           style={{ width:36, height:26, padding:'0 4px', border:'1px solid var(--border)', borderRadius:5, background:'var(--bg2)', color:'var(--text0)', fontSize:12, textAlign:'center' }} />
         {sep()}
+        {/* 도형 내 이미지 채우기 */}
+        <div style={{ position:'relative', display:'flex', alignItems:'center', gap:2 }}>
+          <button title="이미지로 채우기" onClick={() => document.getElementById('shape-img-fill')?.click()}
+            style={{ height:26, padding:'0 6px', borderRadius:5, border:`1px solid ${selectedEl.imageFill?'var(--accent)':'var(--border)'}`, background:selectedEl.imageFill?'var(--accent-dim)':'transparent', color:selectedEl.imageFill?'var(--accent)':'var(--text1)', fontSize:11, cursor:'pointer' }}>
+            🖼 이미지
+          </button>
+          <input id="shape-img-fill" type="file" accept="image/*" style={{ display:'none' }}
+            onChange={e => {
+              const file = e.target.files?.[0]; if (!file) return
+              const reader = new FileReader()
+              reader.onload = ev => fmt('imageFill', ev.target?.result as string)
+              reader.readAsDataURL(file)
+              e.target.value = ''
+            }} />
+          {selectedEl.imageFill && (
+            <button title="이미지 제거" onClick={() => fmt('imageFill', undefined)}
+              style={{ height:26, padding:'0 4px', borderRadius:5, border:'1px solid var(--border)', background:'transparent', color:'var(--red)', fontSize:11, cursor:'pointer' }}>✕</button>
+          )}
+        </div>
+        {sep()}
         {/* 도형 내 텍스트 */}
         <input value={selectedEl.innerText||''} onChange={e => fmt('innerText', e.target.value)}
           placeholder="도형 내 텍스트"
@@ -340,7 +386,34 @@ export const Topbar: React.FC = () => {
 
       {/* 저장/내보내기 */}
       {iconBtn(saveFile, Save, '저장 (Ctrl+S)')}
-      {iconBtn(handleExportPDF, FileDown, 'PDF 내보내기')}
+      <div style={{ position: 'relative', flexShrink: 0 }}>
+        <button
+          title="내보내기"
+          onClick={() => setShowExportMenu(v => !v)}
+          style={{ width: 30, height: 30, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', background: showExportMenu ? 'var(--accent-dim)' : 'transparent', color: showExportMenu ? 'var(--accent)' : 'var(--text1)', border: 'none', cursor: 'pointer' }}
+          onMouseEnter={e => { if (!showExportMenu) (e.currentTarget as HTMLElement).style.background = 'var(--bg3)' }}
+          onMouseLeave={e => { if (!showExportMenu) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+        >
+          <FileDown size={15} />
+        </button>
+        {showExportMenu && (
+          <div style={{ position: 'fixed', top: 50, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, padding: 4, zIndex: 200, boxShadow: '0 8px 24px rgba(0,0,0,0.3)', minWidth: 160, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {[
+              ['PDF (현재 페이지)', handleExportPDF],
+              [`PDF (전체 ${pages.length}페이지)`, handleExportAllPDF],
+              ['PNG 이미지', handleExportPNG],
+              ['JPG 이미지', handleExportJPG],
+            ].map(([label, handler]) => (
+              <button key={label as string} onClick={handler as any}
+                style={{ padding: '7px 12px', borderRadius: 6, border: 'none', background: 'transparent', color: 'var(--text1)', cursor: 'pointer', fontSize: 12, textAlign: 'left', fontFamily: 'var(--font-sans)' }}
+                onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--bg3)'}
+                onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}>
+                {label as string}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
       {sep()}
 
       {/* AI */}

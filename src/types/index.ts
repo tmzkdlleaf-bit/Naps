@@ -40,6 +40,7 @@ export interface CanvasElement {
   stroke?: string
   strokeWidth?: number
   borderRadius?: number
+  imageFill?: string // 도형 내부 이미지 URL
 
   // Shape inner text
   innerText?: string

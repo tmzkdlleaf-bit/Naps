@@ -61,21 +61,44 @@ export const CanvasElementRenderer: React.FC<Props> = ({
   const renderShape = () => {
     const { shapeType = 'rect', fill = '#e2e8f0', stroke = 'transparent', strokeWidth = 0, borderRadius = 0 } = el
     const w = el.width, h = el.height
+    const clipId = `clip_${el.id}`
+    const imgFill = el.imageFill // 도형 내 이미지 URL
 
     let shapeEl: React.ReactNode
+    let clipEl: React.ReactNode
 
     if (shapeType === 'rect') {
       shapeEl = (
         <rect x={strokeWidth/2} y={strokeWidth/2}
           width={w - strokeWidth} height={h - strokeWidth}
           rx={borderRadius} ry={borderRadius}
-          fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+          fill={imgFill ? `url(#img_${el.id})` : fill}
+          stroke={stroke} strokeWidth={strokeWidth} />
       )
+      if (imgFill) {
+        clipEl = (
+          <defs>
+            <pattern id={`img_${el.id}`} patternUnits="objectBoundingBox" width="1" height="1">
+              <image href={imgFill} x="0" y="0" width={w} height={h} preserveAspectRatio="xMidYMid slice" />
+            </pattern>
+          </defs>
+        )
+      }
     } else if (shapeType === 'ellipse') {
       shapeEl = (
         <ellipse cx={w/2} cy={h/2} rx={w/2 - strokeWidth/2} ry={h/2 - strokeWidth/2}
-          fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+          fill={imgFill ? `url(#img_${el.id})` : fill}
+          stroke={stroke} strokeWidth={strokeWidth} />
       )
+      if (imgFill) {
+        clipEl = (
+          <defs>
+            <pattern id={`img_${el.id}`} patternUnits="objectBoundingBox" width="1" height="1">
+              <image href={imgFill} x="0" y="0" width={w} height={h} preserveAspectRatio="xMidYMid slice" />
+            </pattern>
+          </defs>
+        )
+      }
     } else if (['line_straight','line_dashed','line_dotted'].includes(shapeType)) {
       const dash = shapeType === 'line_dashed' ? '10,5' : shapeType === 'line_dotted' ? '2,5' : undefined
       const mid = `arr_${el.id}`
@@ -97,13 +120,25 @@ export const CanvasElementRenderer: React.FC<Props> = ({
       )
     } else {
       const path = getShapePath(shapeType, w, h)
-      shapeEl = <path d={path} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+      shapeEl = (
+        <>
+          {imgFill && (
+            <defs>
+              <pattern id={`img_${el.id}`} patternUnits="objectBoundingBox" width="1" height="1">
+                <image href={imgFill} x="0" y="0" width={w} height={h} preserveAspectRatio="xMidYMid slice" />
+              </pattern>
+            </defs>
+          )}
+          <path d={path} fill={imgFill ? `url(#img_${el.id})` : fill} stroke={stroke} strokeWidth={strokeWidth} />
+        </>
+      )
     }
 
     const innerText = el.innerText
     return (
       <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}
         style={{ display:'block', overflow:'visible', position:'absolute', inset:0, pointerEvents:'none' }}>
+        {clipEl}
         {shapeEl}
         {innerText && !editingInner && (
           <text x={w/2} y={h/2} textAnchor={el.innerTextAlign === 'left' ? 'start' : el.innerTextAlign === 'right' ? 'end' : 'middle'}

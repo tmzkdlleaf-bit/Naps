@@ -1,9 +1,9 @@
 import React, { useState } from 'react'
-import { Plus, Trash2, Copy, ChevronRight } from 'lucide-react'
+import { Plus, Trash2, Copy, ClipboardPaste } from 'lucide-react'
 import { useStore } from '@/stores/useStore'
 
 export const PageStrip: React.FC = () => {
-  const { pages, currentPageIndex, goToPage, addPage, deletePage, duplicatePage, renamePage } = useStore()
+  const { pages, currentPageIndex, goToPage, addPage, deletePage, duplicatePage, renamePage, copyPage, pastePage } = useStore()
   const [renaming, setRenaming] = useState<number | null>(null)
   const [renameVal, setRenameVal] = useState('')
 
@@ -69,8 +69,11 @@ export const PageStrip: React.FC = () => {
               style={{ position: 'absolute', top: 2, right: 2, display: 'flex', gap: 2, opacity: 0, transition: 'opacity 0.15s' }}
               className="page-actions"
             >
-              <button onClick={e => { e.stopPropagation(); duplicatePage(idx) }} style={{ width: 16, height: 16, borderRadius: 3, border: 'none', background: 'rgba(0,0,0,0.6)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <button onClick={e => { e.stopPropagation(); copyPage(idx) }} title="페이지 복사" style={{ width: 16, height: 16, borderRadius: 3, border: 'none', background: 'rgba(0,0,0,0.6)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Copy size={8} />
+              </button>
+              <button onClick={e => { e.stopPropagation(); duplicatePage(idx) }} title="페이지 복제" style={{ width: 16, height: 16, borderRadius: 3, border: 'none', background: 'rgba(0,0,0,0.6)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <ClipboardPaste size={8} />
               </button>
               {pages.length > 1 && (
                 <button onClick={e => { e.stopPropagation(); deletePage(idx) }} style={{ width: 16, height: 16, borderRadius: 3, border: 'none', background: 'rgba(239,68,68,0.7)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -115,6 +118,22 @@ export const PageStrip: React.FC = () => {
       >
         <Plus size={18} />
       </button>
+
+      {/* Paste page */}
+      {localStorage.getItem('naps-page-clipboard') && (
+        <button
+          onClick={pastePage}
+          title="페이지 붙여넣기"
+          style={{
+            width: 54, height: 62, borderRadius: 5, flexShrink: 0,
+            border: '1.5px dashed var(--accent)', background: 'var(--accent-dim)',
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: 'var(--accent)', transition: 'all 0.15s',
+          }}
+        >
+          <ClipboardPaste size={16} />
+        </button>
+      )}
 
       <style>{`
         .page-thumb-wrap:hover .page-actions { opacity: 1 !important; }

@@ -183,19 +183,19 @@ export const Canvas: React.FC = () => {
         })
       }
       const onUp = () => {
-        const box = selBoxRef.current
-        if (box) {
-          const cur = { x: 0, y: 0, w: 0, h: 0 }
-          setSelBox(prev => { if (prev) { cur.x=prev.x; cur.y=prev.y; cur.w=prev.w; cur.h=prev.h } return null })
-          setTimeout(() => {
-            const inBox = elements.filter(el =>
-              el.x < cur.x+cur.w && el.x+el.width > cur.x &&
-              el.y < cur.y+cur.h && el.y+el.height > cur.y
-            )
-            inBox.forEach((el, i) => selectElement(el.id, i > 0))
-          }, 0)
+        if (selBoxRef.current) {
+          setSelBox(prev => {
+            if (prev && (prev.w > 4 || prev.h > 4)) {
+              const cur = prev
+              const inBox = useStore.getState().elements.filter(el =>
+                el.x < cur.x + cur.w && el.x + el.width > cur.x &&
+                el.y < cur.y + cur.h && el.y + el.height > cur.y
+              )
+              inBox.forEach((el, i) => selectElement(el.id, i > 0))
+            }
+            return null
+          })
         }
-        setSelBox(null)
         selBoxRef.current = null
         window.removeEventListener('mousemove', onMove)
         window.removeEventListener('mouseup', onUp)
