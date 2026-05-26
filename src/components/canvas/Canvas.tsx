@@ -65,16 +65,41 @@ export const Canvas: React.FC = () => {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  // 휠로 확대/축소
-  const onWheel = useCallback((e: React.WheelEvent) => {
-    e.preventDefault()
-    const delta = e.deltaY < 0 ? 1.1 : 0.9
-    setZoom(Math.min(Math.max(zoom * delta, 0.1), 4))
-  }, [zoom, setZoom])
+  // 휠로 확대/축소 - passive event listener 문제 해결
+  useEffect(() => {
+    const el = wrapRef.current
+    if (!el) return
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      const delta = e.deltaY < 0 ? 1.1 : 0.9
+      setZoom(z => Math.min(Math.max(z * delta, 0.1), 4))
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [setZoom])
+
+  // 손 도구: 스페이스바 누르는 동안도 패닝 활성화
+  const [spaceDown, setSpaceDown] = useState(false)
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && e.target === document.body) {
+        e.preventDefault()
+        setSpaceDown(true)
+      }
+    }
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space') setSpaceDown(false)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keyup', onKeyUp)
+    return () => { window.removeEventListener('keydown', onKeyDown); window.removeEventListener('keyup', onKeyUp) }
+  }, [])
+
+  const isPanMode = activeTool === 'hand' || spaceDown
 
   // 손 도구 패닝
   const onWrapMouseDown = useCallback((e: React.MouseEvent) => {
-    if (activeTool !== 'hand') return
+    if (!isPanMode) return
     e.preventDefault()
     setIsPanning(true)
     panRef.current = {
@@ -96,10 +121,10 @@ export const Canvas: React.FC = () => {
     }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
-  }, [activeTool])
+  }, [isPanMode])
 
   const onCanvasMouseDown = useCallback((e: React.MouseEvent) => {
-    if (!canvasRef.current || activeTool === 'hand') return
+    if (!canvasRef.current || isPanMode) return
     const pos = getCanvasPos(e.clientX, e.clientY, canvasRef.current, zoom)
 
     // 텍스트 도구: 클릭 즉시 편집 가능한 텍스트 생성
@@ -336,7 +361,6 @@ export const Canvas: React.FC = () => {
   return (
     <div
       ref={wrapRef}
-      onWheel={onWheel}
       onDrop={onDrop}
       onDragOver={e => e.preventDefault()}
       onMouseDown={onWrapMouseDown}
@@ -346,7 +370,7 @@ export const Canvas: React.FC = () => {
         background: 'var(--bg0)',
         backgroundImage: showGrid ? 'radial-gradient(var(--bg3) 1.5px, transparent 1.5px)' : undefined,
         backgroundSize: showGrid ? `${20*zoom}px ${20*zoom}px` : undefined,
-        cursor: activeTool === 'hand' ? (isPanning ? 'grabbing' : 'grab') : 'default',
+        cursor: isPanMode ? (isPanning ? 'grabbing' : 'grab') : 'default',
       }}>
 
       <div style={{ position: 'relative', transform: `scale(${zoom})`, transformOrigin: 'center center', flexShrink: 0 }}>
@@ -358,9 +382,9 @@ export const Canvas: React.FC = () => {
             background: pageBackground,
             position: 'relative', overflow: 'hidden', flexShrink: 0,
             boxShadow: '0 0 0 1px rgba(0,0,0,0.12), 0 8px 48px rgba(0,0,0,0.35)',
-            cursor: activeTool === 'text' ? 'text'
+            cursor: isPanMode ? (isPanning ? 'grabbing' : 'grab')
+              : activeTool === 'text' ? 'text'
               : activeTool === 'shape' || activeTool === 'line' ? 'crosshair'
-              : activeTool === 'hand' ? (isPanning ? 'grabbing' : 'grab')
               : 'default',
           }}>
 

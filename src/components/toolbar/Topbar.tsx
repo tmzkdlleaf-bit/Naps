@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import {
   MousePointer2, Type, Square, Hand, Minus,
   Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight,
-  Layers, FlipHorizontal2, FlipVertical2, RotateCw, Trash2,
+  Layers, FlipHorizontal2, FlipVertical2, RotateCw, RotateCcw, Trash2,
   Undo2, Redo2, Grid3X3, Magnet, Save, FileDown, Link,
   Droplets, Sun, Moon, Leaf, Sparkles, Copy, Lock, ClipboardPaste,
   ChevronDown, Triangle, Circle, Star, ArrowRight, MessageSquare, Minus as LineIcon,
@@ -88,17 +88,30 @@ export const Topbar: React.FC = () => {
       const res = await fetch('/api/claude', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1500, system, messages: [{ role: 'user', content: prompt }] }),
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1500,
+          system,
+          messages: [{ role: 'user', content: prompt }]
+        }),
       })
-      if (!res.ok) throw new Error(`서버 오류: ${res.status}`)
       const data = await res.json()
-      if (data.error) throw new Error(data.error)
+      if (!res.ok) {
+        const errMsg = data?.error?.message || data?.error || `서버 오류: ${res.status}`
+        throw new Error(errMsg)
+      }
+      if (data.error) throw new Error(typeof data.error === 'string' ? data.error : data.error.message)
       const raw = data.content?.map((b: any) => b.text || '').join('') || ''
       const match = raw.match(/\[[\s\S]*\]/)
-      if (!match) throw new Error('JSON 형식 없음')
+      if (!match) throw new Error('JSON 형식 없음 — 다시 시도해주세요')
       const parsed = JSON.parse(match[0])
       parsed.forEach((el: any, i: number) => {
-        const base = { id: `el_${Date.now()}_${i}`, x: el.x||50, y: el.y||50, width: el.width||200, height: el.height||80, zIndex: elements.length+i+1, opacity:1, visible:true, locked:false, rotation:0, flipH:false, flipV:false }
+        const base = {
+          id: `el_${Date.now()}_${i}`, x: el.x||50, y: el.y||50,
+          width: el.width||200, height: el.height||80,
+          zIndex: elements.length+i+1, opacity:1, visible:true, locked:false,
+          rotation:0, flipH:false, flipV:false
+        }
         if (el.type === 'text') {
           addElement({ ...base, type:'text', text:el.text||'텍스트', fontSize:el.fontSize||16, fontFamily:'Noto Sans KR', fontWeight:el.fontWeight||'normal', color:el.color||'#111', fill:'transparent', textAlign:'left', lineHeight:1.4, fontStyle:'normal', textDecoration:'none' })
         } else {
@@ -107,7 +120,12 @@ export const Topbar: React.FC = () => {
       })
       toast.success('AI 템플릿 생성 완료!')
     } catch (err: any) {
-      toast.error('AI 오류: ' + err.message)
+      const msg = err.message || '알 수 없는 오류'
+      if (msg.includes('401') || msg.includes('auth')) {
+        toast.error('API 키 오류 — Vercel 환경변수에 ANTHROPIC_API_KEY를 확인하세요')
+      } else {
+        toast.error('AI 오류: ' + msg)
+      }
     } finally {
       setAiLoading(false)
     }
@@ -288,7 +306,16 @@ export const Topbar: React.FC = () => {
       {selectedIds.length > 0 && <>
         {iconBtn(flipH, FlipHorizontal2, '좌우 반전')}
         {iconBtn(flipV, FlipVertical2, '상하 반전')}
-        {iconBtn(() => { if(selectedEl) fmt('rotation', ((selectedEl.rotation||0)+15)%360) }, RotateCw, '회전 +15°')}
+        {iconBtn(() => { if(selectedEl) fmt('rotation', ((selectedEl.rotation||0)-15+360)%360) }, RotateCcw, '반시계 회전 -15°')}
+        {iconBtn(() => { if(selectedEl) fmt('rotation', ((selectedEl.rotation||0)+15)%360) }, RotateCw, '시계 회전 +15°')}
+        {selectedEl && (
+          <input
+            type="number" min={0} max={359} title="회전 각도"
+            value={Math.round(selectedEl.rotation || 0)}
+            onChange={e => fmt('rotation', Number(e.target.value))}
+            style={{ width: 44, height: 26, padding: '0 4px', border: '1px solid var(--border)', borderRadius: 5, background: 'var(--bg2)', color: 'var(--text0)', fontSize: 12, textAlign: 'center' }}
+          />
+        )}
         {iconBtn(layerToFront, Layers, '맨 앞으로')}
         {iconBtn(lockSelected, Lock, '잠금', false, false, selectedEl?.locked)}
         {iconBtn(duplicateSelected, Copy, '복제')}
