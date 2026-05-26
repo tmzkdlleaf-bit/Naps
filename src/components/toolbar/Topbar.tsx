@@ -235,7 +235,7 @@ export const Topbar: React.FC = () => {
         </div>
         <div title="배경색" style={{ position:'relative', display:'flex', alignItems:'center' }}>
           <div style={{ width:20, height:20, borderRadius:4, border:'1.5px dashed var(--border2)', background:(selectedEl.fill&&selectedEl.fill!=='transparent')?selectedEl.fill:'transparent', cursor:'pointer' }} onClick={() => (document.getElementById('bc-pick') as HTMLInputElement)?.click()} />
-          <input type="color" id="bc-pick" value={selectedEl.fill||'#ffffff'} onChange={e => fmt('fill', e.target.value)} style={{ position:'absolute', opacity:0, width:0, height:0, pointerEvents:'none' }} />
+          <input type="color" id="bc-pick" value={(selectedEl.fill && selectedEl.fill !== 'transparent') ? selectedEl.fill : '#ffffff'} onChange={e => fmt('fill', e.target.value)} style={{ position:'absolute', opacity:0, width:0, height:0, pointerEvents:'none' }} />
         </div>
         <button title="배경 투명" onClick={() => fmt('fill', 'transparent')} style={{ fontSize:10, padding:'0 5px', height:24, borderRadius:4, border:'1px solid var(--border)', background:'transparent', color:'var(--text2)', cursor:'pointer' }}>투명</button>
         {sep()}
@@ -246,12 +246,12 @@ export const Topbar: React.FC = () => {
         <div title="채우기" style={{ position:'relative', display:'flex', alignItems:'center', gap:3 }}>
           <span style={{ fontSize:10, color:'var(--text2)' }}>채우기</span>
           <div style={{ width:20, height:20, borderRadius:4, border:'1px solid var(--border)', background:selectedEl.fill||'#e2e8f0', cursor:'pointer' }} onClick={() => (document.getElementById('fill-pick') as HTMLInputElement)?.click()} />
-          <input type="color" id="fill-pick" value={selectedEl.fill||'#e2e8f0'} onChange={e => fmt('fill', e.target.value)} style={{ position:'absolute', opacity:0, width:0, height:0, pointerEvents:'none' }} />
+          <input type="color" id="fill-pick" value={(selectedEl.fill && selectedEl.fill !== 'transparent') ? selectedEl.fill : '#e2e8f0'} onChange={e => fmt('fill', e.target.value)} style={{ position:'absolute', opacity:0, width:0, height:0, pointerEvents:'none' }} />
         </div>
         <div title="테두리" style={{ position:'relative', display:'flex', alignItems:'center', gap:3 }}>
           <span style={{ fontSize:10, color:'var(--text2)' }}>테두리</span>
           <div style={{ width:20, height:20, borderRadius:4, border:'1px solid var(--border)', background:selectedEl.stroke||'transparent', cursor:'pointer' }} onClick={() => (document.getElementById('stroke-pick') as HTMLInputElement)?.click()} />
-          <input type="color" id="stroke-pick" value={selectedEl.stroke||'#000000'} onChange={e => fmt('stroke', e.target.value)} style={{ position:'absolute', opacity:0, width:0, height:0, pointerEvents:'none' }} />
+          <input type="color" id="stroke-pick" value={(selectedEl.stroke && selectedEl.stroke !== 'transparent') ? selectedEl.stroke : '#000000'} onChange={e => fmt('stroke', e.target.value)} style={{ position:'absolute', opacity:0, width:0, height:0, pointerEvents:'none' }} />
         </div>
         <input type="number" min={0} max={20} value={selectedEl.strokeWidth||0}
           onChange={e => fmt('strokeWidth', parseInt(e.target.value))}
@@ -266,7 +266,7 @@ export const Topbar: React.FC = () => {
           style={{ width:36, height:26, padding:'0 4px', border:'1px solid var(--border)', borderRadius:5, background:'var(--bg2)', color:'var(--text0)', fontSize:12, textAlign:'center' }} />
         <div style={{ position:'relative' }}>
           <div style={{ width:20, height:20, borderRadius:4, border:'1px solid var(--border)', background:selectedEl.innerTextColor||'#111', cursor:'pointer' }} onClick={() => (document.getElementById('itc-pick') as HTMLInputElement)?.click()} />
-          <input type="color" id="itc-pick" value={selectedEl.innerTextColor||'#111111'} onChange={e => fmt('innerTextColor', e.target.value)} style={{ position:'absolute', opacity:0, width:0, height:0, pointerEvents:'none' }} />
+          <input type="color" id="itc-pick" value={selectedEl.innerTextColor || '#111111'} onChange={e => fmt('innerTextColor', e.target.value)} style={{ position:'absolute', opacity:0, width:0, height:0, pointerEvents:'none' }} />
         </div>
         {sep()}
       </>}
@@ -275,7 +275,7 @@ export const Topbar: React.FC = () => {
       {selectedEl?.type === 'line' && <>
         <div style={{ position:'relative' }}>
           <div style={{ width:20, height:20, borderRadius:4, border:'1px solid var(--border)', background:selectedEl.stroke||'#475569', cursor:'pointer' }} onClick={() => (document.getElementById('lc-pick') as HTMLInputElement)?.click()} />
-          <input type="color" id="lc-pick" value={selectedEl.stroke||'#475569'} onChange={e => fmt('stroke', e.target.value)} style={{ position:'absolute', opacity:0, width:0, height:0, pointerEvents:'none' }} />
+          <input type="color" id="lc-pick" value={(selectedEl.stroke && selectedEl.stroke !== 'transparent') ? selectedEl.stroke : '#475569'} onChange={e => fmt('stroke', e.target.value)} style={{ position:'absolute', opacity:0, width:0, height:0, pointerEvents:'none' }} />
         </div>
         <input type="number" min={1} max={20} value={selectedEl.strokeWidth||2} onChange={e => fmt('strokeWidth', parseInt(e.target.value))}
           style={{ width:36, height:26, padding:'0 4px', border:'1px solid var(--border)', borderRadius:5, background:'var(--bg2)', color:'var(--text0)', fontSize:12, textAlign:'center' }} />

@@ -27,6 +27,7 @@ export const RightPanel: React.FC = () => {
     alignSelected, layerUp, layerDown, layerToFront, layerToBack,
     selectElement, deleteSelected, duplicateSelected, lockSelected,
     watermark, setWatermark, watermarkEnabled, toggleWatermark,
+    watermarkRotation, setWatermarkRotation, watermarkOpacity, setWatermarkOpacity, watermarkSize, setWatermarkSize,
     canvasWidth, canvasHeight, setCanvasSize,
     pages, currentPageIndex, setPageBackground,
     autoSaveInterval, setAutoSaveInterval,
@@ -189,15 +190,39 @@ export const RightPanel: React.FC = () => {
 
               {/* 워터마크 */}
               <Section title="워터마크">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                  <span style={{ fontSize: 11, color: 'var(--text2)' }}>사용</span>
-                  <button onClick={toggleWatermark}
-                    style={{ width: 36, height: 20, borderRadius: 10, border: 'none', cursor: 'pointer', background: watermarkEnabled ? 'var(--accent)' : 'var(--bg3)', position: 'relative', transition: 'background 0.2s' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                  <span style={{ fontSize: 11, color: 'var(--text2)', flex: 1 }}>사용</span>
+                  <div onClick={toggleWatermark}
+                    style={{ width: 36, height: 20, borderRadius: 10, cursor: 'pointer', background: watermarkEnabled ? 'var(--accent)' : 'var(--bg3)', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
                     <div style={{ width: 14, height: 14, borderRadius: 7, background: '#fff', position: 'absolute', top: 3, left: watermarkEnabled ? 19 : 3, transition: 'left 0.2s' }} />
-                  </button>
+                  </div>
                 </div>
-                <input value={watermark} onChange={e => setWatermark(e.target.value)} placeholder="워터마크 텍스트"
-                  style={{ width: '100%', height: 26, padding: '0 6px', border: '1px solid var(--border)', borderRadius: 5, background: 'var(--bg2)', color: 'var(--text0)', fontSize: 12, fontFamily: 'var(--font-sans)' }} />
+                <input value={watermark || ''} onChange={e => setWatermark(e.target.value)} placeholder="워터마크 텍스트"
+                  style={{ width: '100%', height: 26, padding: '0 6px', border: '1px solid var(--border)', borderRadius: 5, background: 'var(--bg2)', color: 'var(--text0)', fontSize: 12, fontFamily: 'var(--font-sans)', marginBottom: 6 }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                  <span style={{ fontSize: 11, color: 'var(--text2)', width: 46 }}>기울기</span>
+                  <input type="range" min={-90} max={90} step={1}
+                    value={watermarkRotation ?? -30}
+                    onChange={e => setWatermarkRotation(Number(e.target.value))}
+                    style={{ flex: 1 }} />
+                  <span style={{ fontSize: 11, color: 'var(--text1)', width: 30, textAlign: 'right' }}>{watermarkRotation ?? -30}°</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                  <span style={{ fontSize: 11, color: 'var(--text2)', width: 46 }}>투명도</span>
+                  <input type="range" min={1} max={30} step={1}
+                    value={watermarkOpacity ?? 8}
+                    onChange={e => setWatermarkOpacity(Number(e.target.value))}
+                    style={{ flex: 1 }} />
+                  <span style={{ fontSize: 11, color: 'var(--text1)', width: 30, textAlign: 'right' }}>{watermarkOpacity ?? 8}%</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 11, color: 'var(--text2)', width: 46 }}>크기</span>
+                  <input type="range" min={1} max={20} step={0.5}
+                    value={watermarkSize ?? 5}
+                    onChange={e => setWatermarkSize(Number(e.target.value))}
+                    style={{ flex: 1 }} />
+                  <span style={{ fontSize: 11, color: 'var(--text1)', width: 30, textAlign: 'right' }}>{watermarkSize ?? 5}%</span>
+                </div>
               </Section>
             </>
           )}

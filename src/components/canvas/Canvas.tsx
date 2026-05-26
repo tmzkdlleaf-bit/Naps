@@ -14,7 +14,9 @@ export const Canvas: React.FC = () => {
     elements, selectedIds, selectElement, addElement, updateElement,
     updateElements, pushHistory, activeTool, setTool,
     canvasWidth, canvasHeight, zoom, setZoom,
-    showGrid, snapEnabled, watermark, watermarkEnabled, pages, currentPageIndex,
+    showGrid, snapEnabled, watermark, watermarkEnabled,
+    watermarkRotation, watermarkOpacity, watermarkSize,
+    pages, currentPageIndex,
     setPageBackground,
   } = useStore()
 
@@ -181,28 +183,31 @@ export const Canvas: React.FC = () => {
     e.stopPropagation(); e.preventDefault()
     if (!selectedIds.includes(el.id)) selectElement(el.id, e.shiftKey)
 
-    // 다중 선택 시 모든 선택된 요소의 초기 위치 저장
     const state = useStore.getState()
-    const selEls = state.elements.filter(e => state.selectedIds.includes(e.id))
-    const startPositions = selEls.map(e => ({ id: e.id, x: e.x, y: e.y }))
-    const startX = e.clientX, startY = e.clientY
+    // 같은 groupId를 가진 요소들도 함께 선택
+    const groupId = el.groupId
+    const affectedIds = groupId
+      ? state.elements.filter(e => e.groupId === groupId).map(e => e.id)
+      : state.selectedIds.length > 1 ? state.selectedIds : [el.id]
 
-    dragRef.current = { el, startX, startY, elX: el.x, elY: el.y }
+    const startPositions = state.elements
+      .filter(e => affectedIds.includes(e.id))
+      .map(e => ({ id: e.id, x: e.x, y: e.y }))
+
+    const startX = e.clientX, startY = e.clientY
 
     const onMove = (ev: MouseEvent) => {
       const dx = (ev.clientX - startX) / zoom
       const dy = (ev.clientY - startY) / zoom
       const cur = useStore.getState()
 
-      if (cur.selectedIds.length > 1) {
-        // 다중 선택: 모든 선택된 요소 함께 이동
+      if (affectedIds.length > 1) {
         startPositions.forEach(sp => {
           cur.updateElement(sp.id, { x: Math.round(sp.x + dx), y: Math.round(sp.y + dy) })
         })
       } else {
-        // 단일 선택: 스냅 적용
-        const nx = dragRef.current!.elX + dx
-        const ny = dragRef.current!.elY + dy
+        const nx = startPositions[0].x + dx
+        const ny = startPositions[0].y + dy
         const others = cur.elements.filter(o => o.id !== el.id)
         const snapped = snapElement(nx, ny, el.width, el.height, cur.canvasWidth, cur.canvasHeight, others, cur.snapEnabled)
         setSnapGuides(snapped.guides)
@@ -211,7 +216,6 @@ export const Canvas: React.FC = () => {
     }
     const onUp = () => {
       setSnapGuides([]); pushHistory()
-      dragRef.current = null
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
     }
@@ -355,8 +359,16 @@ export const Canvas: React.FC = () => {
             <div key={i} style={{ position: 'absolute', zIndex: 9999, pointerEvents: 'none', background: 'rgba(74,222,128,0.7)', ...(g.type==='h' ? {left:0,right:0,top:g.pos,height:1} : {top:0,bottom:0,left:g.pos,width:1}) }} />
           ))}
 
-          {watermarkEnabled && (
-            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 9998, transform: 'rotate(-30deg)', fontSize: Math.max(16, canvasWidth * 0.05), fontWeight: 500, color: 'rgba(0,0,0,0.08)', whiteSpace: 'nowrap', userSelect: 'none' }}>
+          {watermarkEnabled && watermark && (
+            <div style={{
+              position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
+              justifyContent: 'center', pointerEvents: 'none', zIndex: 9998,
+              transform: `rotate(${watermarkRotation ?? -30}deg)`,
+              fontSize: Math.max(16, canvasWidth * ((watermarkSize ?? 5) / 100)),
+              fontWeight: 500,
+              color: `rgba(0,0,0,${(watermarkOpacity ?? 8) / 100})`,
+              whiteSpace: 'nowrap', userSelect: 'none',
+            }}>
               {watermark}
             </div>
           )}

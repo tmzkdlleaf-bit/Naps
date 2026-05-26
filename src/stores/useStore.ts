@@ -81,8 +81,14 @@ interface State {
   setActiveShapeType: (s: string) => void
   watermark: string
   watermarkEnabled: boolean
+  watermarkRotation: number
+  watermarkOpacity: number
+  watermarkSize: number
   setWatermark: (text: string) => void
   toggleWatermark: () => void
+  setWatermarkRotation: (v: number) => void
+  setWatermarkOpacity: (v: number) => void
+  setWatermarkSize: (v: number) => void
   assets: Asset[]
   loadAssets: () => Promise<void>
   uploadAsset: (file: File, projectId?: string) => Promise<Asset | null>
@@ -264,27 +270,13 @@ export const useStore = create<State>((set, get) => ({
   flipH: () => { const { selectedIds } = get(); set(s => ({ elements: s.elements.map(e => selectedIds.includes(e.id) ? { ...e, flipH: !e.flipH } : e) })) },
   flipV: () => { const { selectedIds } = get(); set(s => ({ elements: s.elements.map(e => selectedIds.includes(e.id) ? { ...e, flipV: !e.flipV } : e) })) },
 
-  // 그룹화
+  // 그룹화 - groupId를 선택된 요소들에 부여
   groupSelected: () => {
     const { selectedIds, elements } = get()
     if (selectedIds.length < 2) { toast('2개 이상 선택 후 그룹화하세요'); return }
-    const toGroup = elements.filter(e => selectedIds.includes(e.id))
-    const minX = Math.min(...toGroup.map(e => e.x)), minY = Math.min(...toGroup.map(e => e.y))
-    const maxX = Math.max(...toGroup.map(e => e.x + e.width)), maxY = Math.max(...toGroup.map(e => e.y + e.height))
-    const groupEl: CanvasElement = {
-      id: uuidv4(), type: 'shape', shapeType: 'rect',
-      x: minX, y: minY, width: maxX - minX, height: maxY - minY,
-      rotation: 0, opacity: 1, flipH: false, flipV: false,
-      zIndex: Math.max(...toGroup.map(e => e.zIndex)),
-      visible: true, locked: false,
-      fill: 'transparent', stroke: '#4ade80', strokeWidth: 1,
-      groupId: uuidv4(),
-    }
-    // 자식에 groupId 부여
-    const childIds = toGroup.map(e => e.id)
+    const gid = uuidv4()
     set(s => ({
-      elements: s.elements.map(e => childIds.includes(e.id) ? { ...e, groupId: groupEl.groupId } : e).concat([groupEl]),
-      selectedIds: [groupEl.id],
+      elements: s.elements.map(e => selectedIds.includes(e.id) ? { ...e, groupId: gid } : e),
     }))
     get().pushHistory()
     toast.success('그룹화되었습니다')
@@ -293,13 +285,11 @@ export const useStore = create<State>((set, get) => ({
   // 그룹 해제
   ungroupSelected: () => {
     const { selectedIds, elements } = get()
-    const groupEl = elements.find(e => selectedIds.includes(e.id) && e.groupId && e.type === 'shape' && e.fill === 'transparent' && e.stroke === '#4ade80')
-    if (!groupEl) { toast.error('그룹 요소를 선택하세요'); return }
-    const children = elements.filter(e => e.groupId === groupEl.groupId && e.id !== groupEl.id)
-    const ungrouped = children.map(e => ({ ...e, groupId: undefined }))
+    const sel = elements.filter(e => selectedIds.includes(e.id))
+    const gids = [...new Set(sel.map(e => e.groupId).filter(Boolean))]
+    if (gids.length === 0) { toast.error('그룹된 요소를 선택하세요'); return }
     set(s => ({
-      elements: s.elements.filter(e => e.id !== groupEl.id && e.groupId !== groupEl.groupId).concat(ungrouped),
-      selectedIds: ungrouped.map(e => e.id),
+      elements: s.elements.map(e => gids.includes(e.groupId) ? { ...e, groupId: undefined } : e),
     }))
     get().pushHistory()
     toast.success('그룹 해제되었습니다')
@@ -314,8 +304,14 @@ export const useStore = create<State>((set, get) => ({
 
   watermark: '© My Portfolio',
   watermarkEnabled: false,
+  watermarkRotation: -30,
+  watermarkOpacity: 8,
+  watermarkSize: 5,
   setWatermark: (watermark) => set({ watermark }),
   toggleWatermark: () => set(s => ({ watermarkEnabled: !s.watermarkEnabled })),
+  setWatermarkRotation: (watermarkRotation) => set({ watermarkRotation }),
+  setWatermarkOpacity: (watermarkOpacity) => set({ watermarkOpacity }),
+  setWatermarkSize: (watermarkSize) => set({ watermarkSize }),
 
   assets: [],
   assetFilter: '', assetTag: 'all',
