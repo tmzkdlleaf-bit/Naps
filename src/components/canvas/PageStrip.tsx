@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Plus, Trash2, Copy, ClipboardPaste } from 'lucide-react'
+import { Plus, Copy, ClipboardPaste } from 'lucide-react'
 import { useStore } from '@/stores/useStore'
 
 export const PageStrip: React.FC = () => {
@@ -70,7 +70,7 @@ export const PageStrip: React.FC = () => {
               {idx + 1}
             </span>
 
-            {/* Hover actions */}
+            {/* Hover actions - 복사/복제만, 삭제는 키보드(Delete)로만 */}
             <div
               style={{ position: 'absolute', top: 2, right: 2, display: 'flex', gap: 2, opacity: 0, transition: 'opacity 0.15s' }}
               className="page-actions"
@@ -81,11 +81,6 @@ export const PageStrip: React.FC = () => {
               <button onClick={e => { e.stopPropagation(); duplicatePage(idx) }} title="페이지 복제" style={{ width: 16, height: 16, borderRadius: 3, border: 'none', background: 'rgba(0,0,0,0.6)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <ClipboardPaste size={8} />
               </button>
-              {pages.length > 1 && (
-                <button onClick={e => { e.stopPropagation(); deletePage(idx) }} style={{ width: 16, height: 16, borderRadius: 3, border: 'none', background: 'rgba(239,68,68,0.7)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Trash2 size={8} />
-                </button>
-              )}
             </div>
           </div>
 

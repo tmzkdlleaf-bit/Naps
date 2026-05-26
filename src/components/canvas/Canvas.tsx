@@ -124,17 +124,19 @@ export const Canvas: React.FC = () => {
     if (!canvasRef.current || isPanMode) return
     const z = zoomRef.current
     const pos = getCanvasPos(e.clientX, e.clientY, canvasRef.current, z)
+    // 항상 최신 activeTool을 store에서 직접 읽기 (클로저 문제 방지)
+    const tool = useStore.getState().activeTool
 
     // 텍스트 추가
-    if (activeTool === 'text') {
+    if (tool === 'text') {
       const el = makeTextElement(pos.x, pos.y, useStore.getState().elements.length)
       addElement(el); setTool('select'); return
     }
 
     // 도형/선 드래그로 그리기
-    if (activeTool === 'shape' || activeTool === 'line') {
+    if (tool === 'shape' || tool === 'line') {
       const st = useStore.getState()
-      const el = activeTool === 'shape'
+      const el = tool === 'shape'
         ? makeShapeElement(pos.x, pos.y, 4, 4, st.elements.length, st.activeShapeType)
         : makeLineElement(pos.x, pos.y, st.elements.length)
       addElement(el)
@@ -158,8 +160,10 @@ export const Canvas: React.FC = () => {
       return
     }
 
-    // 드래그 선택 박스
-    if (activeTool === 'select' && e.target === canvasRef.current) {
+    // 드래그 선택 박스 — e.target 조건 제거해서 아무데서나 드래그 선택 가능
+    if (tool === 'select') {
+      // 요소 위에서 시작한 경우는 onDragStart가 처리하므로 캔버스 직접 클릭만
+      if (e.target !== canvasRef.current) return
       selectElement(null)
       selBoxRef.current = { startX: pos.x, startY: pos.y }
       const onMove = (ev: MouseEvent) => {
@@ -190,7 +194,7 @@ export const Canvas: React.FC = () => {
       window.addEventListener('mousemove', onMove)
       window.addEventListener('mouseup', onUp)
     }
-  }, [activeTool, addElement, selectElement, setTool, pushHistory, isPanMode])
+  }, [addElement, selectElement, setTool, pushHistory, isPanMode])
 
   // ── 요소 드래그 이동 ──
   const onDragStart = useCallback((e: React.MouseEvent, el: CanvasElement) => {
